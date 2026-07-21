@@ -1,0 +1,97 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/foodorderdb?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  sql:
+    init:
+      mode: never
+
+  # ActiveMQ Configuration
+  activemq:
+    broker-url: ${ACTIVEMQ_BROKER_URL:vm://localhost?broker.persistent=false&broker.useShutdownHook=false}
+    user: ${ACTIVEMQ_USER:admin}
+    password: ${ACTIVEMQ_PASSWORD:admin}
+    packages:
+      trust-all: true
+    pool:
+      enabled: true
+      max-connections: 5
+
+  jms:
+    pub-sub-domain: false
+    template:
+      default-destination: order.created
+
+  # Mail Configuration
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:byteburst.orders@gmail.com}
+    password: ${MAIL_PASSWORD:your-app-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+  # OAuth2 Client Configuration
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: openid,email,profile,https://www.googleapis.com/auth/gmail.send
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+
+app:
+  frontend:
+    url: ${APP_FRONTEND_URL:http://localhost:5173}
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: 86400000
+
+camunda:
+  bpm:
+    admin-user:
+      id: admin
+      password: admin
+      firstName: Admin
+    database:
+      type: mysql
+      schema-update: true
+    history-level: full
+    auto-deployment-enabled: true
+    default-serialization-format: application/json
+    generic-properties:
+      properties:
+        enforce-history-time-to-live: false
+
+logging:
+  level:
+    com.foodorder.backend: INFO
+    org.springframework.jms: INFO
+    org.apache.activemq: WARN
+    org.camunda: WARN

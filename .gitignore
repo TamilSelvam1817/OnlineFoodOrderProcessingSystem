@@ -1,0 +1,22 @@
+# Maven
+apache-maven-3.9.6/
+target/
+
+# Node
+node_modules/
+dist/
+
+# Environment
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git
+
+# OS
+Thumbs.db
+.DS_Store
