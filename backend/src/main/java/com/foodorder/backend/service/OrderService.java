@@ -271,7 +271,13 @@ public class OrderService {
         }
 
         order.setStatus("CANCELLED");
-        order.setPaymentStatus("REFUNDED");
+        String pMethod = order.getPaymentMethod() != null ? order.getPaymentMethod().toUpperCase() : "";
+        boolean isCOD = pMethod.contains("CASH") || pMethod.contains("COD");
+        if (isCOD || "PENDING".equalsIgnoreCase(order.getPaymentStatus())) {
+            order.setPaymentStatus("CANCELLED");
+        } else {
+            order.setPaymentStatus("REFUNDED");
+        }
         order.setCancellationReason(reason != null && !reason.isBlank() ? reason : "Customer requested cancellation");
         order.setCancelledAt(LocalDateTime.now());
 

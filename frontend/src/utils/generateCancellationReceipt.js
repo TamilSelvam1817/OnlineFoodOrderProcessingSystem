@@ -78,7 +78,10 @@ export function generateCancellationReceipt(order) {
   const orderDate = formatDate(order.createdAt || order.orderPlacedAt);
 
   const reasonText = order.cancellationReason || 'Customer Requested Cancellation';
-  const payStatus = order.paymentStatus || (order.paymentMethod === 'Cash on Delivery' || order.paymentMethod === 'COD' ? 'CANCELLED' : 'REFUNDED');
+  const pMethod = String(order.paymentMethod || '').toUpperCase();
+  const isCOD = pMethod.includes('CASH') || pMethod.includes('COD');
+  const isPaid = order.paymentStatus === 'PAID' || (!isCOD && order.paymentStatus !== 'PENDING' && order.paymentStatus !== 'CANCELLED');
+  const payStatus = isPaid ? 'REFUNDED' : 'CANCELLED';
 
   const details = [
     ['Order ID', '#' + order.id],
@@ -110,11 +113,11 @@ export function generateCancellationReceipt(order) {
   doc.setDrawColor(254, 202, 202);
   doc.roundedRect(margin, noticeY, pageWidth - margin * 2, 18, 2, 2, 'FD');
 
-  const noticeTitle = payStatus === 'REFUNDED' ? 'ORDER CANCELLED — REFUND INITIATED' : 'ORDER CANCELLED';
+  const noticeTitle = isPaid ? 'ORDER CANCELLED — REFUND INITIATED' : 'ORDER CANCELLED — NO PAYMENT REQUIRED';
   const noticeLine1 = `This order was cancelled (${reasonText}).`;
-  const noticeLine2 = payStatus === 'REFUNDED'
+  const noticeLine2 = isPaid
     ? `A full refund of $${Number(order.totalAmount || 0).toFixed(2)} has been initiated to your payment method.`
-    : 'No payment was collected or charges have been voided for this order.';
+    : 'No payment was collected and no charges were incurred for this Cash on Delivery order.';
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');

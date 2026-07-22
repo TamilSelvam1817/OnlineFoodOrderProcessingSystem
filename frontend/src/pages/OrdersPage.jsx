@@ -77,12 +77,16 @@ export default function OrdersPage() {
     try {
       const defaultReason = 'Customer requested cancellation';
       const res = await orderService.cancelOrder(order.id, defaultReason);
-      const updatedOrder = res.data || { ...order, status: 'CANCELLED', paymentStatus: 'REFUNDED', cancellationReason: defaultReason };
+      const pMethod = String(order.paymentMethod || '').toUpperCase();
+      const isCOD = pMethod.includes('CASH') || pMethod.includes('COD');
+      const nextPayStatus = isCOD || order.paymentStatus === 'PENDING' ? 'CANCELLED' : 'REFUNDED';
+
+      const updatedOrder = res.data || { ...order, status: 'CANCELLED', paymentStatus: nextPayStatus, cancellationReason: defaultReason };
 
       generateCancellationReceipt(updatedOrder);
 
       setOrders((prev) =>
-        prev.map((o) => (o.id === order.id ? { ...o, status: 'CANCELLED', paymentStatus: 'REFUNDED', cancellationReason: defaultReason } : o))
+        prev.map((o) => (o.id === order.id ? { ...o, status: 'CANCELLED', paymentStatus: nextPayStatus, cancellationReason: defaultReason } : o))
       );
 
       showToast('success', `❌ Order #${order.id} cancelled successfully.`);
