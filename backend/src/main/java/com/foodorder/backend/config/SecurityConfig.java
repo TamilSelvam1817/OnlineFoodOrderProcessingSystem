@@ -53,7 +53,7 @@ public class SecurityConfig {
     @Bean
     public AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository() {
         return new HttpSessionOAuth2AuthorizationRequestRepository();
-    }
+    }  
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -61,7 +61,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/oauth2/**", "/login/oauth2/**", "/login/**", "/error").permitAll()
                 .requestMatchers("/api/restaurants/**").permitAll()
@@ -69,15 +69,15 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
-                .authorizationEndpoint(auth -> auth
-                    .authorizationRequestRepository(authorizationRequestRepository())
+                .authorizationEndpoint(endpoint -> endpoint
+                .authorizationRequestRepository(authorizationRequestRepository())
                 )
                 .userInfoEndpoint(userInfo -> userInfo
-                    .userService(customOAuth2UserService)
-                    .oidcUserService(customOidcUserService)
-                )
-                .successHandler(oAuth2SuccessHandler)
+                .userService(customOAuth2UserService)
+                .oidcUserService(customOidcUserService)
             )
+            .successHandler(oAuth2SuccessHandler)
+)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
