@@ -9,7 +9,7 @@ COPY pom.xml .
 COPY .mvn .mvn
 COPY src src
 
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -B
 
 # ==========================
 # Stage 2 - Run
