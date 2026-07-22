@@ -67,7 +67,8 @@ public class OrderStatusSchedulerService {
                     newStatus = "RESTAURANT_ACCEPTED";
                 }
             } else if ("RESTAURANT_ACCEPTED".equals(upper)) {
-                if (secondsInStage >= 30) {
+                // Wait 60 seconds before kitchen starts
+                if (secondsInStage >= 60) {
                     newStatus = "KITCHEN_PREPARING";
                 }
             } else if ("KITCHEN_PREPARING".equals(upper) || "KITCHEN_PREP".equals(upper)) {

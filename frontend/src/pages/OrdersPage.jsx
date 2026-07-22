@@ -194,7 +194,7 @@ export default function OrdersPage() {
               const isDelivered = currentNorm === 'DELIVERED';
               const cancellableStatuses = ['ORDER_PLACED', 'PAYMENT_PROCESSING', 'RESTAURANT_ACCEPTED', 'PLACED'];
 
-              const canCancel = cancellableStatuses.includes(currentNorm) && !isCancelled && !isDelivered;
+              const canCancel = !isCancelled && !isDelivered && ["ORDER_PLACED", "PAYMENT_PROCESSING", "RESTAURANT_ACCEPTED", "PLACED"].includes(currentNorm);
 
               const isPastCancellationWindow = !canCancel && !isCancelled && !isDelivered;
               const currentConf = statusConfig[currentNorm] || statusConfig.ORDER_PLACED;
@@ -265,8 +265,8 @@ export default function OrdersPage() {
                             <React.Fragment key={s}>
                               <div className="flex flex-col items-center min-w-[70px] text-center">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all ${done
-                                    ? 'bg-green-500 text-white shadow-md shadow-green-500/20 scale-105'
-                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
+                                  ? 'bg-green-500 text-white shadow-md shadow-green-500/20 scale-105'
+                                  : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
                                   }`}>
                                   {done ? <FaCheckCircle /> : i + 1}
                                 </div>
