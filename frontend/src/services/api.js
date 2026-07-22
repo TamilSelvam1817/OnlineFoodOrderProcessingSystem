@@ -4,7 +4,7 @@ import { logout } from '../redux/slices/authSlice';
 import { MOCK_RESTAURANTS, MOCK_MENUS } from './mockData';
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://onlinefoodorderprocessingsystem-production.up.railway.app/api',
   headers: {
     'Content-Type': 'application/json',
   },

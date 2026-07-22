@@ -47,6 +47,12 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String name = oAuth2User.getAttribute("name");
 
         String baseUrl = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl.trim() : "https://frontend-production-26f5.up.railway.app";
+
+        String serverName = request.getServerName();
+        if (baseUrl.contains("localhost") && ((serverName != null && serverName.contains("railway.app")) || System.getenv("PORT") != null)) {
+            baseUrl = "https://frontend-production-26f5.up.railway.app";
+        }
+
         if (baseUrl.endsWith("/")) {
             baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }
