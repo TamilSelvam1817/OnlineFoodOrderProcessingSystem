@@ -45,7 +45,7 @@ export default function CheckoutPage() {
         restaurantName: firstItem.restaurantName || 'BiteBurst Partner',
         deliveryAddress: address,
         paymentMethod: paymentMethod,
-        isPaymentFailed: isDevOrAdmin && simulateFailure,
+        isPaymentFailed: false,
         totalAmount: safeTotal,
         quantities: items.reduce((sum, i) => sum + (i.quantity || 1), 0),
         prices: items.map((i) => i.price),

@@ -136,7 +136,11 @@ public class OrderService {
             }
         }
 
-        boolean isPaymentFailed = Boolean.TRUE.equals(request.get("isPaymentFailed")) || "FAILED".equalsIgnoreCase(String.valueOf(request.get("paymentStatus")));
+        boolean isPaymentFailed = false;
+        Object failedObj = request.get("isPaymentFailed");
+        if (failedObj != null && ("true".equalsIgnoreCase(failedObj.toString()) || Boolean.TRUE.equals(failedObj))) {
+            isPaymentFailed = true;
+        }
 
         String paymentMethod = (String) request.getOrDefault("paymentMethod", "UPI");
         String paymentStatus;
