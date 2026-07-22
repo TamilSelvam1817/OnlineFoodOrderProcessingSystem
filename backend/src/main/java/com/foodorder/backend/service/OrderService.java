@@ -230,7 +230,7 @@ public class OrderService {
 
         List<Order> rawOrders;
         if (customer.getRole().equals("ROLE_ADMIN")) {
-            rawOrders = orderRepository.findAll();
+            rawOrders = orderRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
         } else if (customer.getRole().equals("ROLE_RESTAURANT")) {
             List<Restaurant> owned = restaurantRepository.findByOwnerId(customer.getId());
             rawOrders = new ArrayList<>();
