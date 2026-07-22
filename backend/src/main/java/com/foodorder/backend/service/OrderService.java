@@ -270,13 +270,12 @@ public class OrderService {
         }
 
         String currentStatus = order.getStatus() != null ? order.getStatus().toUpperCase() : "ORDER_PLACED";
-        LocalDateTime orderTime = order.getOrderPlacedAt() != null ? order.getOrderPlacedAt() : order.getCreatedAt();
-        long elapsedSeconds = orderTime != null ? Math.max(0, java.time.Duration.between(orderTime, LocalDateTime.now()).getSeconds()) : 999;
-        java.util.List<String> allowedStatuses = java.util.List.of("ORDER_PLACED", "PLACED", "PAYMENT_PROCESSING", "RESTAURANT_ACCEPTED");
+        List<String> allowedStatuses =
+            List.of("ORDER_PLACED","PLACED","PAYMENT_PROCESSING","RESTAURANT_ACCEPTED");
 
-        if (elapsedSeconds >= 60 || !allowedStatuses.contains(currentStatus)) {
+        if (!allowedStatuses.contains(currentStatus)) {
             throw new IllegalArgumentException("Order can no longer be cancelled because preparation has started.");
-        }
+}
 
         order.setStatus("CANCELLED");
         String pMethod = order.getPaymentMethod() != null ? order.getPaymentMethod().toUpperCase() : "";

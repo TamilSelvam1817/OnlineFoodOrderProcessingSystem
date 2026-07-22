@@ -164,9 +164,8 @@ export default function OrdersPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 py-8 px-4 transition-colors duration-300">
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl shadow-xl text-xs font-bold text-white ${
-          toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'
-        }`}>
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl shadow-xl text-xs font-bold text-white ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'
+          }`}>
           {toast.message}
         </div>
       )}
@@ -193,15 +192,9 @@ export default function OrdersPage() {
               const activeIndex = STATUS_STEPS.indexOf(currentNorm);
               const isCancelled = currentNorm === 'CANCELLED';
               const isDelivered = currentNorm === 'DELIVERED';
-              const CANCEL_WINDOW_SECONDS = 60;
-              const orderTime = new Date(order.orderPlacedAt || order.createdAt || Date.now()).getTime();
-              const elapsedSeconds = Math.max(0, Math.floor((Date.now() - orderTime) / 1000));
               const cancellableStatuses = ['ORDER_PLACED', 'PAYMENT_PROCESSING', 'RESTAURANT_ACCEPTED', 'PLACED'];
 
-              const canCancel = elapsedSeconds < CANCEL_WINDOW_SECONDS &&
-                cancellableStatuses.includes(currentNorm) &&
-                !isCancelled &&
-                !isDelivered;
+              const canCancel = cancellableStatuses.includes(currentNorm) && !isCancelled && !isDelivered;
 
               const isPastCancellationWindow = !canCancel && !isCancelled && !isDelivered;
               const currentConf = statusConfig[currentNorm] || statusConfig.ORDER_PLACED;
@@ -271,16 +264,14 @@ export default function OrdersPage() {
                           return (
                             <React.Fragment key={s}>
                               <div className="flex flex-col items-center min-w-[70px] text-center">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all ${
-                                  done
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all ${done
                                     ? 'bg-green-500 text-white shadow-md shadow-green-500/20 scale-105'
                                     : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
-                                }`}>
+                                  }`}>
                                   {done ? <FaCheckCircle /> : i + 1}
                                 </div>
-                                <p className={`text-[10px] font-bold mt-2 transition-colors ${
-                                  active ? 'text-slate-800 dark:text-white font-black' : done ? 'text-green-600 dark:text-green-400' : 'text-slate-400'
-                                }`}>
+                                <p className={`text-[10px] font-bold mt-2 transition-colors ${active ? 'text-slate-800 dark:text-white font-black' : done ? 'text-green-600 dark:text-green-400' : 'text-slate-400'
+                                  }`}>
                                   {stepConf.label}
                                 </p>
                                 {(done || active) && stageTime && (
