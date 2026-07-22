@@ -64,40 +64,40 @@ export default function App() {
     document.documentElement.classList.toggle('dark', themeMode === 'dark');
   }, [themeMode]);
 
-  // Routes that should NOT have the standard Navbar/Footer layout
-  const noLayoutRoutes = ['/', '/login', '/register', '/admin', '/restaurant-dashboard'];
-  const useLayout = !noLayoutRoutes.some((r) => location.pathname === r || location.pathname.startsWith('/admin') || location.pathname.startsWith('/restaurant-dashboard'));
-
   return (
-  <div className="min-h-screen">
-    <Toast />
+    <div className="bg-[#F8F9FA] dark:bg-slate-900 min-h-screen font-[Outfit] transition-colors duration-300">
+      <Toast />
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          {/* Public Routes (no layout) */}
+          <Route path="/" element={<PageWrapper><LandingPage /></PageWrapper>} />
+          <Route path="/login" element={<PageWrapper><LoginPage /></PageWrapper>} />
+          <Route path="/register" element={<PageWrapper><RegisterPage /></PageWrapper>} />
+          <Route path="/google-callback" element={<PageWrapper><GoogleCallbackPage /></PageWrapper>} />
+          <Route path="/oauth/success" element={<PageWrapper><GoogleCallbackPage /></PageWrapper>} />
 
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
+          {/* Protected Routes with Main Layout */}
+          <Route path="/home" element={<ProtectedRoute><MainLayout><PageWrapper><HomePage /></PageWrapper></MainLayout></ProtectedRoute>} />
+          <Route path="/restaurant/:id" element={<ProtectedRoute><MainLayout><PageWrapper><RestaurantDetailPage /></PageWrapper></MainLayout></ProtectedRoute>} />
+          <Route path="/checkout" element={<ProtectedRoute><MainLayout><PageWrapper><CheckoutPage /></PageWrapper></MainLayout></ProtectedRoute>} />
+          <Route path="/orders" element={<ProtectedRoute><MainLayout><PageWrapper><OrdersPage /></PageWrapper></MainLayout></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><MainLayout><PageWrapper><ProfilePage /></PageWrapper></MainLayout></ProtectedRoute>} />
 
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/google-callback" element={<GoogleCallbackPage />} />
-        <Route path="/oauth/success" element={<GoogleCallbackPage />} />
+          {/* Admin & Restaurant Dashboard (no footer/navbar) */}
+          <Route path="/admin" element={<ProtectedRoute allowedRoles={['ROLE_ADMIN']}><PageWrapper><AdminDashboardPage /></PageWrapper></ProtectedRoute>} />
+          <Route path="/restaurant-dashboard" element={<ProtectedRoute allowedRoles={['ROLE_RESTAURANT']}><PageWrapper><RestaurantDashboardPage /></PageWrapper></ProtectedRoute>} />
 
-        <Route
-          path="/home"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <PageWrapper>
-                  <HomePage />
-                </PageWrapper>
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* other routes */}
-
-      </Routes>
-    </AnimatePresence>
-  </div>
-);
+          {/* 404 Fallback */}
+          <Route path="*" element={
+            <div className="min-h-screen flex flex-col items-center justify-center text-center">
+              <div className="text-8xl mb-6">🍽️</div>
+              <h1 className="text-3xl font-black text-slate-800 dark:text-white mb-2">Page Not Found</h1>
+              <p className="text-slate-400 mb-6">The page you're looking for doesn't exist.</p>
+              <a href="/home" className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-dark transition-all">Go Home</a>
+            </div>
+          } />
+        </Routes>
+      </AnimatePresence>
+    </div>
+  );
 }
