@@ -35,8 +35,8 @@ public class KitchenService implements JavaDelegate {
     public void execute(DelegateExecution execution) throws Exception {
         Long orderId = (Long) execution.getVariable("orderId");
 
-        // Update order status to KITCHEN_PREPARING
-        orderStatusService.updateOrderStatus(orderId, "KITCHEN_PREPARING");
+        // Status progression is managed on a 90s live timeline by OrderStatusSchedulerService
+        // orderStatusService.updateOrderStatus(orderId, "KITCHEN_PREPARING");
 
         // Assign chef and save kitchen ticket with READY status
         String chef = CHEFS[random.nextInt(CHEFS.length)];

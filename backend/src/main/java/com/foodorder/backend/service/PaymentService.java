@@ -34,8 +34,8 @@ public class PaymentService implements JavaDelegate {
     public void execute(DelegateExecution execution) throws Exception {
         Long orderId = (Long) execution.getVariable("orderId");
 
-        // Update order status to PAYMENT_PROCESSING
-        orderStatusService.updateOrderStatus(orderId, "PAYMENT_PROCESSING");
+        // Status progression is managed on a 90s live timeline by OrderStatusSchedulerService
+        // orderStatusService.updateOrderStatus(orderId, "PAYMENT_PROCESSING");
 
         // Get order amount
         double amount = orderStatusService.getOrderAmount(orderId);

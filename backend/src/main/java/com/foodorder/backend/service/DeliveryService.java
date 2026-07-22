@@ -35,8 +35,8 @@ public class DeliveryService implements JavaDelegate {
     public void execute(DelegateExecution execution) throws Exception {
         Long orderId = (Long) execution.getVariable("orderId");
 
-        // Update order status to OUT_FOR_DELIVERY
-        orderStatusService.updateOrderStatus(orderId, "OUT_FOR_DELIVERY");
+        // Status progression is managed on a 90s live timeline by OrderStatusSchedulerService
+        // orderStatusService.updateOrderStatus(orderId, "OUT_FOR_DELIVERY");
 
         // Assign a random mock driver
         String driver = DRIVERS[random.nextInt(DRIVERS.length)];

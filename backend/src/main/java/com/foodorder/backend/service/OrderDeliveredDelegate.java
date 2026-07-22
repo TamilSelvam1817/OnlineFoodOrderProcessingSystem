@@ -21,8 +21,8 @@ public class OrderDeliveredDelegate implements JavaDelegate {
 
     @Override
     public void execute(DelegateExecution execution) throws Exception {
-        Long orderId = (Long) execution.getVariable("orderId");
-        orderStatusService.updateOrderStatus(orderId, "DELIVERED");
+        // Status progression is managed on a 90s live timeline by OrderStatusSchedulerService
+        // orderStatusService.updateOrderStatus(orderId, "DELIVERED");
         log.info("[OrderService] Order #{} - Workflow COMPLETE", orderId);
     }
 }
