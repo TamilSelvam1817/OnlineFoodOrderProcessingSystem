@@ -1,20 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { toggleTheme } from '../redux/slices/themeSlice';
 import { logout } from '../redux/slices/authSlice';
-import { FaShoppingCart, FaUser, FaSun, FaMoon, FaSearch, FaMapMarkerAlt, FaBell, FaSignOutAlt } from 'react-icons/fa';
+import { markAsRead, markAllAsRead, clearAllNotifications } from '../redux/slices/notificationSlice';
+import { FaShoppingCart, FaUser, FaSun, FaMoon, FaSearch, FaMapMarkerAlt, FaBell, FaSignOutAlt, FaCheckDouble, FaTrashAlt, FaBoxOpen, FaTimes, FaFileInvoice, FaTag, FaInfoCircle } from 'react-icons/fa';
+
+const getNotifIcon = (type) => {
+  switch (type) {
+    case 'order': return <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500 text-xs">📦</span>;
+    case 'cancel': return <span className="p-2 rounded-xl bg-red-500/10 text-red-500 text-xs">❌</span>;
+    case 'invoice': return <span className="p-2 rounded-xl bg-orange-500/10 text-orange-500 text-xs">📄</span>;
+    case 'cart': return <span className="p-2 rounded-xl bg-blue-500/10 text-blue-500 text-xs">🛒</span>;
+    case 'coupon': return <span className="p-2 rounded-xl bg-purple-500/10 text-purple-500 text-xs">🏷️</span>;
+    default: return <span className="p-2 rounded-xl bg-primary/10 text-primary text-xs">🔔</span>;
+  }
+};
+
+const formatTimeAgo = (isoTime) => {
+  if (!isoTime) return 'Just now';
+  const diffMs = Date.now() - new Date(isoTime).getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${Math.floor(diffHours / 24)}d ago`;
+};
 
 export default function Navbar({ onCartToggle }) {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const cartItems = useSelector((state) => state.cart.items);
   const themeMode = useSelector((state) => state.theme.mode);
+  const notifications = useSelector((state) => state.notifications?.items || []);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const [searchVal, setSearchVal] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
 
+  const unreadCount = notifications.filter((n) => !n.read).length;
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   const handleSearch = (e) => {
@@ -27,6 +53,16 @@ export default function Navbar({ onCartToggle }) {
   const handleLogout = () => {
     dispatch(logout());
     navigate('/');
+  };
+
+  const handleNotifClick = (n) => {
+    if (!n.read) {
+      dispatch(markAsRead(n.id));
+    }
+    if (n.link) {
+      setShowNotifDropdown(false);
+      navigate(n.link);
+    }
   };
 
   return (
@@ -61,7 +97,7 @@ export default function Navbar({ onCartToggle }) {
         </form>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           
           {/* Dark Mode Toggle */}
           <button
@@ -72,11 +108,93 @@ export default function Navbar({ onCartToggle }) {
             {themeMode === 'dark' ? <FaSun className="text-amber-400" /> : <FaMoon />}
           </button>
 
-          {/* Notification Button */}
-          <button className="relative p-2 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
-            <FaBell />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
-          </button>
+          {/* Notification Bell Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowNotifDropdown(!showNotifDropdown);
+                setShowDropdown(false);
+              }}
+              className="relative p-2 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+              title="Notifications"
+            >
+              <FaBell className={unreadCount > 0 ? 'text-primary animate-bounce' : ''} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-primary text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {showNotifDropdown && (
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 py-3 z-50 overflow-hidden">
+                <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-black text-slate-800 dark:text-white">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        {unreadCount} new
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={() => dispatch(markAllAsRead())}
+                        className="text-primary hover:underline font-bold text-[11px] flex items-center gap-1"
+                      >
+                        <FaCheckDouble /> Read All
+                      </button>
+                    )}
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={() => dispatch(clearAllNotifications())}
+                        className="text-slate-400 hover:text-red-500 font-medium text-[11px] flex items-center gap-1"
+                      >
+                        <FaTrashAlt /> Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/60">
+                  {notifications.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <div className="text-3xl mb-2">🔔</div>
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No notifications yet</p>
+                      <p className="text-[11px] text-slate-400 mt-1">We'll alert you when orders or updates occur</p>
+                    </div>
+                  ) : (
+                    notifications.map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={() => handleNotifClick(n)}
+                        className={`p-3.5 flex items-start gap-3 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-700/50 ${
+                          !n.read ? 'bg-primary/5 dark:bg-primary/10' : ''
+                        }`}
+                      >
+                        {getNotifIcon(n.type)}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className={`text-xs font-bold truncate ${!n.read ? 'text-slate-900 dark:text-white font-black' : 'text-slate-700 dark:text-slate-300'}`}>
+                              {n.title}
+                            </p>
+                            <span className="text-[10px] text-slate-400 flex-shrink-0">{formatTimeAgo(n.time)}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                            {n.message}
+                          </p>
+                        </div>
+                        {!n.read && (
+                          <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Cart Button */}
           <button
@@ -95,7 +213,10 @@ export default function Navbar({ onCartToggle }) {
           {isAuthenticated ? (
             <div className="relative">
               <button
-                onClick={() => setShowDropdown(!showDropdown)}
+                onClick={() => {
+                  setShowDropdown(!showDropdown);
+                  setShowNotifDropdown(false);
+                }}
                 className="flex items-center gap-2 p-1 rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
                 <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm uppercase">

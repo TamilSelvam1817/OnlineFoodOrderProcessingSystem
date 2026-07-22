@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { applyCoupon, clearCart } from '../redux/slices/cartSlice';
+import { addNotification } from '../redux/slices/notificationSlice';
 import { orderService } from '../services/api';
 import { showToast } from '../components/Toast';
 import { generateInvoice } from '../utils/generateInvoice';
@@ -72,6 +73,13 @@ export default function CheckoutPage() {
       const res = await orderService.placeOrder(orderData);
       const newOrder = res.data;
       setPlacedOrder(newOrder);
+
+      dispatch(addNotification({
+        type: 'order',
+        title: `Order #${newOrder.id || ''} Placed! 🎉`,
+        message: `Your food order of $${safeTotal.toFixed(2)} has been placed successfully.`,
+        link: '/orders'
+      }));
 
       setProgressText('Generating Invoice...');
       await new Promise((r) => setTimeout(r, 600));

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { orderService } from '../services/api';
+import { addNotification } from '../redux/slices/notificationSlice';
 import { FaCheckCircle, FaHourglassHalf, FaBoxOpen, FaMotorcycle, FaStar, FaSpinner, FaTimes, FaUtensils, FaStore, FaClock, FaDownload, FaFileDownload, FaExclamationTriangle } from 'react-icons/fa';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { generateInvoice } from '../utils/generateInvoice';
@@ -61,6 +63,7 @@ const getStageTimestamp = (s, order) => {
 };
 
 export default function OrdersPage() {
+  const dispatch = useDispatch();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
@@ -89,6 +92,13 @@ export default function OrdersPage() {
         prev.map((o) => (o.id === order.id ? { ...o, status: 'CANCELLED', paymentStatus: nextPayStatus, cancellationReason: defaultReason } : o))
       );
 
+      dispatch(addNotification({
+        type: 'cancel',
+        title: `Order #${order.id} Cancelled ❌`,
+        message: `Order #${order.id} was cancelled successfully. Receipt downloaded.`,
+        link: '/orders'
+      }));
+
       showToast('success', `❌ Order #${order.id} cancelled successfully.`);
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to cancel order.';
@@ -112,6 +122,14 @@ export default function OrdersPage() {
       }
 
       generateInvoice(currentOrder);
+
+      dispatch(addNotification({
+        type: 'invoice',
+        title: `Invoice #${order.id} Downloaded 📄`,
+        message: `Invoice PDF for Order #${order.id} was generated and email dispatched.`,
+        link: '/orders'
+      }));
+
       showToast('success', '✅ Invoice PDF downloaded! Email delivery dispatched.');
 
       orderService.sendGmailInvoice(order.id).catch((eErr) => {
