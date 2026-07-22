@@ -71,9 +71,19 @@ export function generateInvoice(order) {
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(60, 60, 60);
 
-  const orderDate = new Date(order.createdAt || Date.now()).toLocaleString('en-US', {
-    month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-  });
+  const formatDate = (rawDate) => {
+    if (!rawDate) return new Date().toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+    if (typeof rawDate === 'string' && !rawDate.endsWith('Z') && !rawDate.includes('+')) {
+      const d = new Date(rawDate.replace(' ', 'T'));
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+      }
+    }
+    const d = new Date(rawDate);
+    return isNaN(d.getTime()) ? String(rawDate) : d.toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
+  const orderDate = formatDate(order.createdAt || order.orderPlacedAt);
 
   let payStatus = order.paymentStatus;
   if (order.status === 'DELIVERED') {
