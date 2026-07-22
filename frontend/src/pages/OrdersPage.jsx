@@ -193,7 +193,9 @@ export default function OrdersPage() {
               const activeIndex = STATUS_STEPS.indexOf(currentNorm);
               const isCancelled = currentNorm === 'CANCELLED';
               const isDelivered = currentNorm === 'DELIVERED';
-              const isCancellable = !isDelivered && !isCancelled;
+              const cancellableStatuses = ['ORDER_PLACED', 'PAYMENT_PROCESSING', 'RESTAURANT_ACCEPTED', 'PLACED'];
+              const isCancellable = cancellableStatuses.includes(currentNorm);
+              const isPastCancellationWindow = !isCancellable && !isCancelled && !isDelivered;
               const currentConf = statusConfig[currentNorm] || statusConfig.ORDER_PLACED;
 
               return (
@@ -302,6 +304,12 @@ export default function OrdersPage() {
                             {cancellingId === order.id ? <FaSpinner className="animate-spin" /> : <FaTimes />}
                             {cancellingId === order.id ? 'Cancelling...' : 'Cancel Order'}
                           </button>
+                        )}
+                        {isPastCancellationWindow && (
+                          <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-900/40 flex items-center gap-1.5">
+                            <FaUtensils className="text-amber-500 flex-shrink-0" />
+                            This order can no longer be cancelled because the restaurant has started preparing it.
+                          </span>
                         )}
                       </div>
 
