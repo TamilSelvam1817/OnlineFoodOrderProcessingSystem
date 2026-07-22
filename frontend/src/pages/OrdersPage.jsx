@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { orderService } from '../services/api';
 import { addNotification } from '../redux/slices/notificationSlice';
-import { FaCheckCircle, FaHourglassHalf, FaBoxOpen, FaMotorcycle, FaStar, FaSpinner, FaTimes, FaUtensils, FaStore, FaClock, FaDownload, FaFileDownload, FaExclamationTriangle } from 'react-icons/fa';
+import { FaCheckCircle, FaHourglassHalf, FaBoxOpen, FaMotorcycle, FaStar, FaSpinner, FaTimes, FaUtensils, FaStore, FaClock, FaDownload, FaFileDownload, FaExclamationTriangle, FaLock } from 'react-icons/fa';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { generateInvoice } from '../utils/generateInvoice';
 import { generateCancellationReceipt } from '../utils/generateCancellationReceipt';
@@ -193,9 +193,17 @@ export default function OrdersPage() {
               const activeIndex = STATUS_STEPS.indexOf(currentNorm);
               const isCancelled = currentNorm === 'CANCELLED';
               const isDelivered = currentNorm === 'DELIVERED';
+              const CANCEL_WINDOW_SECONDS = 60;
+              const orderTime = new Date(order.orderPlacedAt || order.createdAt || Date.now()).getTime();
+              const elapsedSeconds = Math.max(0, Math.floor((Date.now() - orderTime) / 1000));
               const cancellableStatuses = ['ORDER_PLACED', 'PAYMENT_PROCESSING', 'RESTAURANT_ACCEPTED', 'PLACED'];
-              const isCancellable = cancellableStatuses.includes(currentNorm);
-              const isPastCancellationWindow = !isCancellable && !isCancelled && !isDelivered;
+
+              const canCancel = elapsedSeconds < CANCEL_WINDOW_SECONDS &&
+                cancellableStatuses.includes(currentNorm) &&
+                !isCancelled &&
+                !isDelivered;
+
+              const isPastCancellationWindow = !canCancel && !isCancelled && !isDelivered;
               const currentConf = statusConfig[currentNorm] || statusConfig.ORDER_PLACED;
 
               return (
@@ -295,7 +303,7 @@ export default function OrdersPage() {
                             <FaStar className="text-amber-400" /> Rate Order
                           </button>
                         )}
-                        {isCancellable && (
+                        {canCancel && (
                           <button
                             onClick={() => handleDirectCancelOrder(order)}
                             disabled={cancellingId === order.id}
@@ -307,8 +315,8 @@ export default function OrdersPage() {
                         )}
                         {isPastCancellationWindow && (
                           <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-900/40 flex items-center gap-1.5">
-                            <FaUtensils className="text-amber-500 flex-shrink-0" />
-                            This order can no longer be cancelled because the restaurant has started preparing it.
+                            <FaLock className="text-amber-500 flex-shrink-0" />
+                            Kitchen has started preparing your food. This order can no longer be cancelled.
                           </span>
                         )}
                       </div>
