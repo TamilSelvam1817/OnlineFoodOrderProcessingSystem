@@ -20,7 +20,7 @@ public class OrderStatusSchedulerService {
 
     /**
      * Sequential step-by-step stage transition scheduler running every 5 seconds.
-     * Prevents timezone offset jumping and guarantees exact realistic order lifecycle:
+     * Guarantees exact realistic order lifecycle:
      * 1. ORDER_PLACED        (15s duration) -> Cancel button ACTIVE
      * 2. PAYMENT_PROCESSING   (15s duration) -> Cancel button ACTIVE
      * 3. RESTAURANT_ACCEPTED  (30s duration) -> Cancel button ACTIVE
@@ -45,32 +45,56 @@ public class OrderStatusSchedulerService {
 
             if ("ORDER_PLACED".equals(upper) || "PLACED".equals(upper)) {
                 LocalDateTime start = order.getOrderPlacedAt() != null ? order.getOrderPlacedAt() : order.getCreatedAt();
-                if (start == null) start = now;
-                long secondsInStage = Duration.between(start, now).getSeconds();
+                if (start == null) {
+                    order.setOrderPlacedAt(now);
+                    orderRepository.save(order);
+                    start = now;
+                }
+                long secondsInStage = Math.max(0, Duration.between(start, now).getSeconds());
                 if (secondsInStage >= 15) {
                     newStatus = "PAYMENT_PROCESSING";
                 }
             } else if ("PAYMENT_PROCESSING".equals(upper)) {
-                LocalDateTime start = order.getPaymentProcessingAt() != null ? order.getPaymentProcessingAt() : now;
-                long secondsInStage = Duration.between(start, now).getSeconds();
+                LocalDateTime start = order.getPaymentProcessingAt();
+                if (start == null) {
+                    order.setPaymentProcessingAt(now);
+                    orderRepository.save(order);
+                    start = now;
+                }
+                long secondsInStage = Math.max(0, Duration.between(start, now).getSeconds());
                 if (secondsInStage >= 15) {
                     newStatus = "RESTAURANT_ACCEPTED";
                 }
             } else if ("RESTAURANT_ACCEPTED".equals(upper)) {
-                LocalDateTime start = order.getRestaurantAcceptedAt() != null ? order.getRestaurantAcceptedAt() : now;
-                long secondsInStage = Duration.between(start, now).getSeconds();
+                LocalDateTime start = order.getRestaurantAcceptedAt();
+                if (start == null) {
+                    order.setRestaurantAcceptedAt(now);
+                    orderRepository.save(order);
+                    start = now;
+                }
+                long secondsInStage = Math.max(0, Duration.between(start, now).getSeconds());
                 if (secondsInStage >= 30) {
                     newStatus = "KITCHEN_PREPARING";
                 }
             } else if ("KITCHEN_PREPARING".equals(upper) || "KITCHEN_PREP".equals(upper)) {
-                LocalDateTime start = order.getKitchenPreparingAt() != null ? order.getKitchenPreparingAt() : now;
-                long secondsInStage = Duration.between(start, now).getSeconds();
+                LocalDateTime start = order.getKitchenPreparingAt();
+                if (start == null) {
+                    order.setKitchenPreparingAt(now);
+                    orderRepository.save(order);
+                    start = now;
+                }
+                long secondsInStage = Math.max(0, Duration.between(start, now).getSeconds());
                 if (secondsInStage >= 30) {
                     newStatus = "OUT_FOR_DELIVERY";
                 }
             } else if ("OUT_FOR_DELIVERY".equals(upper)) {
-                LocalDateTime start = order.getOutForDeliveryAt() != null ? order.getOutForDeliveryAt() : now;
-                long secondsInStage = Duration.between(start, now).getSeconds();
+                LocalDateTime start = order.getOutForDeliveryAt();
+                if (start == null) {
+                    order.setOutForDeliveryAt(now);
+                    orderRepository.save(order);
+                    start = now;
+                }
+                long secondsInStage = Math.max(0, Duration.between(start, now).getSeconds());
                 if (secondsInStage >= 30) {
                     newStatus = "DELIVERED";
                 }
