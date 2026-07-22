@@ -27,8 +27,12 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Do not logout if 401 is requesting Google OAuth authorization
-      if (error.response.data && error.response.data.requiresGoogleAuth) {
+      const requestUrl = error.config?.url || '';
+      if (
+        requestUrl.includes('/auth/login') ||
+        requestUrl.includes('/auth/register') ||
+        (error.response.data && error.response.data.requiresGoogleAuth)
+      ) {
         return Promise.reject(error);
       }
       // Auto logout on token expiry

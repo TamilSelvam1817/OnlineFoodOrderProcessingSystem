@@ -79,7 +79,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/google-callback" element={<GoogleCallbackPage />} />
-        <Route path="/oauth/success" element={<Navigate to="/home" replace />} />
+        <Route path="/oauth/success" element={<GoogleCallbackPage />} />
 
         <Route
           path="/home"

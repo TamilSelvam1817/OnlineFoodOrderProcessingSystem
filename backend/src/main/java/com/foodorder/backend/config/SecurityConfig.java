@@ -42,7 +42,7 @@ public class SecurityConfig {
     @Autowired
     private OAuth2SuccessHandler oAuth2SuccessHandler;
 
-    @Value("${app.frontend.url:http://localhost:5173}")
+    @Value("${app.frontend.url:https://frontend-production-26f5.up.railway.app}")
     private String frontendUrl;
 
     @Bean
@@ -90,7 +90,8 @@ public class SecurityConfig {
         List<String> allowedOrigins = new ArrayList<>(Arrays.asList(
             "http://localhost:5173",
             "http://localhost:3000",
-            "http://localhost:4173"
+            "http://localhost:4173",
+            "https://frontend-production-26f5.up.railway.app"
         ));
 
         if (frontendUrl != null && !frontendUrl.isBlank()) {

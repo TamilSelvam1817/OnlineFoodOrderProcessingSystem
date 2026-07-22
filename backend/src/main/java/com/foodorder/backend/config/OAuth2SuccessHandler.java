@@ -32,7 +32,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Autowired
     private UserRepository userRepository;
 
-    @Value("${app.frontend.url:http://localhost:5173}")
+    @Value("${app.frontend.url:https://frontend-production-26f5.up.railway.app}")
     private String frontendUrl;
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -46,7 +46,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String rawEmail = oAuth2User.getAttribute("email");
         String name = oAuth2User.getAttribute("name");
 
-        String baseUrl = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl.trim() : "http://localhost:5173";
+        String baseUrl = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl.trim() : "https://frontend-production-26f5.up.railway.app";
         if (baseUrl.endsWith("/")) {
             baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }

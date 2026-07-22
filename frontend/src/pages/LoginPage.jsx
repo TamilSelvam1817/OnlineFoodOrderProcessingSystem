@@ -34,8 +34,8 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = () => {
-    const baseUrl = "https://onlinefoodorderprocessingsystem-production.up.railway.app";
-    window.location.href = `${baseUrl}/oauth2/authorization/google`;
+    const backend = (import.meta.env.VITE_API_URL || "https://onlinefoodorderprocessingsystem-production.up.railway.app/api").replace("/api", "");
+    window.location.href = `${backend}/oauth2/authorization/google`;
   };
 
   return (
