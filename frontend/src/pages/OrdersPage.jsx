@@ -65,10 +65,41 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [sendingId, setSendingId] = useState(null);
   const [toast, setToast] = useState(null);
+  const [cancelModalOrder, setCancelModalOrder] = useState(null);
+  const [selectedReason, setSelectedReason] = useState('Ordered by mistake');
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   const showToast = (type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 5000);
+  };
+
+  const openCancelModal = (order) => {
+    setCancelModalOrder(order);
+    setSelectedReason('Ordered by mistake');
+  };
+
+  const confirmCancelOrder = async () => {
+    if (!cancelModalOrder) return;
+    setCancelLoading(true);
+    try {
+      const res = await orderService.cancelOrder(cancelModalOrder.id, selectedReason);
+      const updatedOrder = res.data || { ...cancelModalOrder, status: 'CANCELLED', paymentStatus: 'REFUNDED' };
+      
+      generateCancellationReceipt(updatedOrder);
+
+      setOrders((prev) =>
+        prev.map((o) => (o.id === cancelModalOrder.id ? { ...o, status: 'CANCELLED', paymentStatus: 'REFUNDED', cancellationReason: selectedReason } : o))
+      );
+
+      showToast('success', `❌ Order #${cancelModalOrder.id} cancelled. Cancellation receipt downloaded.`);
+      setCancelModalOrder(null);
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to cancel order.';
+      showToast('error', msg);
+    } finally {
+      setCancelLoading(false);
+    }
   };
 
   const handleInvoiceDownload = async (order) => {
@@ -84,11 +115,9 @@ export default function OrdersPage() {
         console.warn('Could not fetch fresh order data, using current view state', fErr);
       }
 
-      // 1. Generate & download PDF in browser instantly
       generateInvoice(currentOrder);
       showToast('success', '✅ Invoice PDF downloaded! Email delivery dispatched.');
 
-      // 2. Trigger backend invoice email asynchronously (non-blocking)
       orderService.sendGmailInvoice(order.id).catch((eErr) => {
         console.warn('Backend invoice email dispatch note:', eErr);
       });
@@ -119,133 +148,177 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] dark:bg-slate-900 py-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 py-8 px-4 transition-colors duration-300">
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl shadow-xl text-xs font-bold text-white ${
+          toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'
+        }`}>
+          {toast.message}
+        </div>
+      )}
 
-      {/* Toast Notification */}
       <AnimatePresence>
-        {toast && (
-          <motion.div
-            key="toast"
-            initial={{ opacity: 0, y: -60 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -60 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl min-w-[300px] max-w-[90vw] ${
-              toast.type === 'success'
-                ? 'bg-green-500 text-white'
-                : toast.type === 'info'
-                ? 'bg-blue-500 text-white'
-                : 'bg-red-500 text-white'
-            }`}
-          >
-            <FaCheckCircle className="text-white text-base flex-shrink-0" />
-            <span className="text-sm font-semibold flex-1">{toast.message}</span>
-            <button onClick={() => setToast(null)} className="ml-2 hover:opacity-70 transition-opacity">
-              <FaTimes />
-            </button>
-          </motion.div>
+        {cancelModalOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 dark:border-slate-700">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
+                  <FaExclamationTriangle className="text-red-500" /> Cancel Order #{cancelModalOrder.id}
+                </h3>
+                <button onClick={() => setCancelModalOrder(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                  <FaTimes size={18} />
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                Please select a reason for cancelling your order. Your order status will be updated immediately.
+              </p>
+
+              <div className="space-y-2 mb-6">
+                {[
+                  'Ordered by mistake',
+                  'Incorrect delivery address',
+                  'Estimated delivery time too long',
+                  'Changed my mind',
+                  'Other reason'
+                ].map((reason) => (
+                  <label key={reason} className={`flex items-center gap-3 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
+                    selectedReason === reason
+                      ? 'border-red-500 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="cancellationReason"
+                      value={reason}
+                      checked={selectedReason === reason}
+                      onChange={() => setSelectedReason(reason)}
+                      className="accent-red-500"
+                    />
+                    {reason}
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setCancelModalOrder(null)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={confirmCancelOrder}
+                  disabled={cancelLoading}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition-all shadow-md shadow-red-500/30 disabled:opacity-60 flex items-center gap-2"
+                >
+                  {cancelLoading ? <FaSpinner className="animate-spin" /> : null}
+                  {cancelLoading ? 'Cancelling...' : 'Confirm Cancellation'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
-      <div className="max-w-4xl mx-auto px-4">
-        <h1 className="text-2xl font-black text-slate-800 dark:text-white mb-2">My Orders</h1>
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-black text-slate-800 dark:text-white mb-2">My Orders</h1>
         <p className="text-slate-400 text-sm mb-8">Track your live order progress and order history</p>
 
         {orders.length === 0 ? (
-          <div className="text-center py-24 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
-            <div className="text-6xl mb-4">📦</div>
-            <h3 className="text-xl font-black text-slate-700 dark:text-slate-300">No orders yet</h3>
-            <p className="text-slate-400 mt-2 mb-6">Your order history will appear here</p>
-            <a href="/home" className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-dark transition-all inline-block">Browse Restaurants</a>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-12 text-center border border-slate-100 dark:border-slate-700">
+            <div className="text-6xl mb-4">🛍️</div>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">No orders found</h3>
+            <p className="text-slate-400 text-sm mb-6">Looks like you haven't placed any food orders yet.</p>
+            <a href="/home" className="bg-primary text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-primary-dark transition-all inline-block">
+              Explore Restaurants
+            </a>
           </div>
         ) : (
           <div className="space-y-6">
             {orders.map((order, idx) => {
-              const normStatus = normalizeStatus(order.status);
-              const stepIdx = STATUS_STEPS.indexOf(normStatus);
-              const config = statusConfig[normStatus] || statusConfig.ORDER_PLACED;
-              const isDelivered = normStatus === 'DELIVERED';
-              const isCancelled = normStatus === 'CANCELLED' || order.paymentStatus === 'FAILED';
-
-              const safeTotal = Number(order.totalAmount || 0);
-              const payStatus = isCancelled ? 'FAILED' : (order.paymentStatus || (order.paymentMethod === 'Cash on Delivery' || order.paymentMethod === 'COD' ? (isDelivered ? 'PAID' : 'PENDING') : 'PAID'));
-              const baseDate = new Date(order.createdAt || Date.now());
+              const currentNorm = normalizeStatus(order.status);
+              const activeIndex = STATUS_STEPS.indexOf(currentNorm);
+              const isCancelled = currentNorm === 'CANCELLED';
+              const isDelivered = currentNorm === 'DELIVERED';
+              const isCancellable = ['ORDER_PLACED', 'PAYMENT_PROCESSING', 'RESTAURANT_ACCEPTED'].includes(currentNorm);
+              const currentConf = statusConfig[currentNorm] || statusConfig.ORDER_PLACED;
 
               return (
-                <motion.div key={order.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.08 }}
-                  className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
-
-                  {/* Order Header */}
-                  <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-700">
+                <motion.div
+                  key={order.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.08 }}
+                  className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm hover:shadow-md transition-all border border-slate-100 dark:border-slate-700 overflow-hidden"
+                >
+                  <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <p className="text-xs text-slate-400 mb-0.5">Order #{order.id} • {baseDate.toLocaleDateString()}</p>
-                      <h3 className="text-lg font-black text-slate-800 dark:text-white">{order.restaurant?.name || 'ByteBurst Partner Kitchen'}</h3>
-                      <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
-                        <span>Payment: <strong className="text-slate-600 dark:text-slate-300">{order.paymentMethod || 'UPI'}</strong></span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-slate-400">Order #{order.id}</span>
+                        <span className="text-xs text-slate-300">•</span>
+                        <span className="text-xs text-slate-400">
+                          {new Date(order.createdAt || Date.now()).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-black text-slate-800 dark:text-white mt-1">
+                        {order.restaurant?.name || 'Restaurant'}
+                      </h3>
+                      <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                        <span>Payment: <strong className="text-slate-600 dark:text-slate-300">{order.paymentMethod}</strong></span>
                         <span>•</span>
-                        <span>Status: <strong className={payStatus === 'PAID' ? 'text-green-500 font-bold' : payStatus === 'FAILED' ? 'text-red-500 font-bold' : 'text-amber-500 font-bold'}>{payStatus}</strong></span>
-                        {!isCancelled && (
+                        <span>Status: <strong className={order.paymentStatus === 'PAID' ? 'text-green-500' : 'text-amber-500'}>{order.paymentStatus}</strong></span>
+                        {order.cancellationReason && (
                           <>
                             <span>•</span>
-                            <span className="flex items-center gap-1">
-                              <FaClock className="text-primary" />
-                              {isDelivered ? <strong className="text-green-500">Delivered</strong> : <strong>Est: 25–35 mins</strong>}
-                            </span>
+                            <span className="text-red-400">Reason: {order.cancellationReason}</span>
                           </>
                         )}
                       </div>
                     </div>
+
                     <div className="text-right">
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-full ${isCancelled ? 'bg-red-50 text-red-500 dark:bg-red-950/20' : isDelivered ? 'bg-green-50 text-green-500 dark:bg-green-950/20' : config.bg + ' ' + config.color}`}>
-                        {isCancelled ? <FaExclamationTriangle /> : isDelivered ? <FaCheckCircle /> : config.icon} {isCancelled ? 'Cancelled' : isDelivered ? 'Delivered' : config.label}
-                      </span>
-                      <p className="text-lg font-black text-slate-800 dark:text-white mt-2">${safeTotal.toFixed(2)}</p>
+                      <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold ${currentConf.bg} ${currentConf.color}`}>
+                        {currentConf.icon}
+                        {currentConf.label}
+                      </div>
+                      <p className="text-xl font-black text-primary mt-2">${Number(order.totalAmount || 0).toFixed(2)}</p>
                     </div>
                   </div>
 
-                  {/* Body Content */}
-                  <div className="p-5">
+                  <div className="p-6">
                     {isCancelled ? (
-                      <div className="bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/50 rounded-2xl p-4 text-center mb-5">
-                        <span className="text-red-500 text-2xl block mb-1">❌</span>
-                        <h4 className="font-bold text-red-600 dark:text-red-400 text-sm">Order Cancelled</h4>
-                        <p className="text-xs text-red-500/80">Reason: Payment Transaction Failed</p>
+                      <div className="bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-2xl p-4 flex items-center gap-3 text-red-500 mb-6">
+                        <FaTimes className="text-xl" />
+                        <div>
+                          <p className="text-xs font-bold">This order was cancelled</p>
+                          <p className="text-[11px] text-red-400 mt-0.5">
+                            {order.cancellationReason ? `Reason: ${order.cancellationReason}` : 'No payment was deducted or funds have been refunded.'}
+                          </p>
+                        </div>
                       </div>
                     ) : (
-                      /* Timeline */
-                      <div className="flex items-center gap-1 overflow-x-auto pb-4 mb-5">
+                      <div className="flex items-center justify-between mb-8 overflow-x-auto pb-2">
                         {STATUS_STEPS.map((s, i) => {
-                          let done = false;
-                          let active = false;
-
-                          if (isDelivered) {
-                            done = true;
-                            active = false;
-                          } else if (stepIdx <= 0) { // ORDER_PLACED state
-                            done = i === 0;
-                            active = i === 1; // PAYMENT_PROCESSING is active
-                          } else {
-                            done = i < stepIdx;
-                            active = i === stepIdx;
-                          }
-
-                          const stepConf = statusConfig[s] || {};
+                          const stepConf = statusConfig[s];
+                          const done = i <= activeIndex;
+                          const active = i === activeIndex;
                           const stageTime = getStageTimestamp(s, order);
 
                           return (
                             <React.Fragment key={s}>
-                              <div className="flex flex-col items-center text-center min-w-[105px]">
-                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs border-2 transition-all ${
+                              <div className="flex flex-col items-center min-w-[70px] text-center">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all ${
                                   done
-                                    ? 'border-green-500 bg-green-500 text-white'
-                                    : active
-                                    ? 'border-primary bg-primary text-white scale-110 shadow-lg shadow-primary/30 animate-pulse ring-4 ring-primary/20'
-                                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-400'
+                                    ? 'bg-green-500 text-white shadow-md shadow-green-500/20 scale-105'
+                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
                                 }`}>
-                                  {done ? '✓' : stepConf.icon || (i + 1)}
+                                  {done ? <FaCheckCircle /> : i + 1}
                                 </div>
-                                <p className={`text-[10px] mt-2 font-bold whitespace-nowrap ${
-                                  done ? 'text-green-500 font-bold' : active ? 'text-primary font-black scale-105' : 'text-slate-400'
+                                <p className={`text-[10px] font-bold mt-2 transition-colors ${
+                                  active ? 'text-slate-800 dark:text-white font-black' : done ? 'text-green-600 dark:text-green-400' : 'text-slate-400'
                                 }`}>
                                   {stepConf.label}
                                 </p>
@@ -254,9 +327,7 @@ export default function OrdersPage() {
                                 )}
                               </div>
                               {i < STATUS_STEPS.length - 1 && (
-                                <div className={`flex-1 h-1 min-w-[20px] rounded-full transition-all ${
-                                  done ? 'bg-green-500' : 'bg-slate-200 dark:bg-slate-700'
-                                }`}></div>
+                                <div className={`flex-1 h-0.5 mx-2 min-w-[20px] ${i < activeIndex ? 'bg-green-500' : 'bg-slate-100 dark:bg-slate-700'}`} />
                               )}
                             </React.Fragment>
                           );
@@ -264,30 +335,19 @@ export default function OrdersPage() {
                       </div>
                     )}
 
-                    {/* Ordered Items */}
-                    <div className="space-y-2 mb-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Order Items</p>
-                      {order.items?.map((item, itemIdx) => {
-                        const foodName = item.foodItem?.name || item.name || 'Food Item';
-                        const itemPrice = Number(item.price ?? item.foodItem?.price ?? 0);
-                        const quantity = Number(item.quantity ?? 1);
-                        const subtotal = (itemPrice * quantity).toFixed(2);
-
-                        return (
-                          <div key={item.id || itemIdx} className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                            <span className="font-semibold text-slate-700 dark:text-slate-300">{foodName} x{quantity}</span>
-                            <span className="font-bold text-slate-700 dark:text-slate-200">${subtotal}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Actions */}
                     <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-4">
-                      <div>
+                      <div className="flex items-center gap-2">
                         {isDelivered && (
                           <button className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-primary transition-colors px-3 py-1.5 rounded-lg hover:bg-primary/5">
                             <FaStar className="text-amber-400" /> Rate Order
+                          </button>
+                        )}
+                        {isCancellable && (
+                          <button
+                            onClick={() => openCancelModal(order)}
+                            className="flex items-center gap-1.5 text-xs font-bold text-red-500 hover:text-white border border-red-200 dark:border-red-800 hover:bg-red-500 transition-all px-3.5 py-2 rounded-xl"
+                          >
+                            <FaTimes /> Cancel Order
                           </button>
                         )}
                       </div>
@@ -297,7 +357,7 @@ export default function OrdersPage() {
                           onClick={() => generateCancellationReceipt(order)}
                           className="flex items-center gap-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 transition-all px-4 py-2 rounded-xl shadow-sm"
                         >
-                          <FaFileDownload /> Download Cancellation Receipt
+                          <FaFileDownload /> Cancellation Receipt
                         </button>
                       ) : (
                         <button

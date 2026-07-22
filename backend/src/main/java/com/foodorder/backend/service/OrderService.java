@@ -248,4 +248,36 @@ public class OrderService {
         return orderRepository.findByRestaurantIdOrderByCreatedAtDesc(restaurantId)
                 .stream().map(OrderResponse::fromOrder).collect(Collectors.toList());
     }
+
+    public OrderResponse cancelOrder(Long orderId, String reason, String email) {
+        Optional<Order> orderOpt = orderRepository.findById(orderId);
+        if (orderOpt.isEmpty()) {
+            throw new IllegalArgumentException("Order #" + orderId + " not found");
+        }
+
+        Order order = orderOpt.get();
+        
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            if (!user.getRole().equals("ROLE_ADMIN") && (order.getCustomer() != null && !order.getCustomer().getId().equals(user.getId()))) {
+                throw new IllegalArgumentException("Unauthorized to cancel Order #" + orderId);
+            }
+        }
+
+        String currentStatus = order.getStatus() != null ? order.getStatus().toUpperCase() : "ORDER_PLACED";
+        if (currentStatus.equals("KITCHEN_PREPARING") || currentStatus.equals("OUT_FOR_DELIVERY") || currentStatus.equals("DELIVERED") || currentStatus.equals("CANCELLED")) {
+            throw new IllegalArgumentException("Cannot cancel order once kitchen preparation has begun");
+        }
+
+        order.setStatus("CANCELLED");
+        order.setPaymentStatus("REFUNDED");
+        order.setCancellationReason(reason != null && !reason.isBlank() ? reason : "Customer requested cancellation");
+        order.setCancelledAt(LocalDateTime.now());
+
+        Order saved = orderRepository.save(order);
+        log.info("[OrderService] Order #{} cancelled by {}. Reason: {}", saved.getId(), email, order.getCancellationReason());
+
+        return OrderResponse.fromOrder(saved);
+    }
 }

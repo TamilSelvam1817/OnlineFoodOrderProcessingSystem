@@ -48,6 +48,8 @@ public class Order {
     private LocalDateTime kitchenPreparingAt;
     private LocalDateTime outForDeliveryAt;
     private LocalDateTime deliveredAt;
+    private LocalDateTime cancelledAt;
+    private String cancellationReason;
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -210,6 +212,22 @@ public class Order {
 
     public void setDeliveredAt(LocalDateTime deliveredAt) {
         this.deliveredAt = deliveredAt;
+    }
+
+    public LocalDateTime getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public void setCancelledAt(LocalDateTime cancelledAt) {
+        this.cancelledAt = cancelledAt;
+    }
+
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -62,4 +62,20 @@ public class OrderController {
     public ResponseEntity<List<OrderResponse>> getRestaurantOrders(@PathVariable Long restaurantId) {
         return ResponseEntity.ok(orderService.getOrdersByRestaurantId(restaurantId));
     }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelOrder(@PathVariable Long id, @RequestBody(required = false) Map<String, String> payload) {
+        try {
+            String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            String reason = payload != null ? payload.get("reason") : "Customer requested cancellation";
+            OrderResponse response = orderService.cancelOrder(id, reason, email);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.warn("[OrderController] Cancellation failed for Order #{}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            log.error("[OrderController] Error cancelling Order #{}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of("message", "An unexpected error occurred while cancelling order"));
+        }
+    }
 }

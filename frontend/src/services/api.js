@@ -110,6 +110,7 @@ export const orderService = {
   getOrderById: (id) => API.get(`/orders/${id}`),
   updateStatus: (id, status) => API.put(`/orders/${id}/status`, { status }),
   sendGmailInvoice: (orderId) => API.post(`/orders/${orderId}/invoice`),
+  cancelOrder: (id, reason) => API.post(`/orders/${id}/cancel`, { reason }),
 };
 
 export const dashboardService = {
