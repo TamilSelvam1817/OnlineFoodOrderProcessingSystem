@@ -12,9 +12,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
-import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizationRequestRepository;
-import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -42,17 +39,12 @@ public class SecurityConfig {
     @Autowired
     private OAuth2SuccessHandler oAuth2SuccessHandler;
 
-    @Value("${app.frontend.url:https://frontend-production-26f5.up.railway.app}")
+    @Value("${app.frontend.url:https://online-food-order-processing-system-inky.vercel.app}")
     private String frontendUrl;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository() {
-        return new HttpSessionOAuth2AuthorizationRequestRepository();
     }  
 
     @Bean
@@ -61,23 +53,33 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
+            .sessionManagement(session ->
+                    session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+            )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/oauth2/**", "/login/oauth2/**", "/login/**", "/error").permitAll()
-                .requestMatchers("/api/restaurants/**").permitAll()
-                .requestMatchers("/camunda/**", "/engine-rest/**", "/camunda-welcome/**", "/lib/**").permitAll()
-                .anyRequest().authenticated()
+                    .requestMatchers(
+                            "/api/auth/**",
+                            "/oauth2/**",
+                            "/login/oauth2/**",
+                            "/login/**",
+                            "/error"
+                    ).permitAll()
+                    .requestMatchers("/api/restaurants/**").permitAll()
+                    .requestMatchers(
+                            "/camunda/**",
+                            "/engine-rest/**",
+                            "/camunda-welcome/**",
+                            "/lib/**"
+                    ).permitAll()
+                    .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
-                .authorizationEndpoint(endpoint -> endpoint
-                .authorizationRequestRepository(authorizationRequestRepository())
-                )
-                .userInfoEndpoint(userInfo -> userInfo
-                .userService(customOAuth2UserService)
-                .oidcUserService(customOidcUserService)
+                    .userInfoEndpoint(userInfo -> userInfo
+                            .userService(customOAuth2UserService)
+                            .oidcUserService(customOidcUserService)
+                    )
+                    .successHandler(oAuth2SuccessHandler)
             )
-            .successHandler(oAuth2SuccessHandler)
-)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
