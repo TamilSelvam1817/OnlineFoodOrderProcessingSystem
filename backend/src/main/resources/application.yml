@@ -40,7 +40,7 @@ spring:
     host: smtp.gmail.com
     port: 587
     username: ${MAIL_USERNAME:byteburst.orders@gmail.com}
-    password: ${MAIL_PASSWORD:your-app-password}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
