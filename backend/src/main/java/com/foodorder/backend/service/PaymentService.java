@@ -40,8 +40,8 @@ public class PaymentService implements JavaDelegate {
         // Get order amount
         double amount = orderStatusService.getOrderAmount(orderId);
 
-        // Simulate payment processing (80% success rate)
-        boolean paymentSuccess = random.nextInt(100) < 80;
+        // Payment processing for order (100% success rate for placed orders)
+        boolean paymentSuccess = true;
 
         String transactionId = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         String status = paymentSuccess ? "SUCCESS" : "FAILED";
