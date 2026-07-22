@@ -19,7 +19,7 @@ public class OrderStatusSchedulerService {
     @Autowired
     private OrderRepository orderRepository;
 
-    @Scheduled(fixedRate = 180000)
+    // @Scheduled(fixedRate = 180000)
     public void advanceActiveOrdersStatus() {
         List<Order> orders = orderRepository.findAll();
         for (Order order : orders) {

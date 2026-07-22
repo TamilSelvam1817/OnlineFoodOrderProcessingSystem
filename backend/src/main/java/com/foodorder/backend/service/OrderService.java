@@ -266,8 +266,8 @@ public class OrderService {
         }
 
         String currentStatus = order.getStatus() != null ? order.getStatus().toUpperCase() : "ORDER_PLACED";
-        if (currentStatus.equals("DELIVERED") || currentStatus.equals("CANCELLED")) {
-            throw new IllegalArgumentException("Cannot cancel an order that is already delivered or cancelled");
+        if (currentStatus.equals("CANCELLED")) {
+            throw new IllegalArgumentException("Order is already cancelled");
         }
 
         order.setStatus("CANCELLED");
