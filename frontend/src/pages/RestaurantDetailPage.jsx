@@ -144,13 +144,13 @@ export default function RestaurantDetailPage() {
 
       {/* Sticky Cart Summary */}
       {cartCount > 0 && (
-        <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30">
-          <div className="bg-primary text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-8 min-w-[320px]">
+        <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-4 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto sm:min-w-[340px] max-w-md z-30">
+          <div className="bg-primary text-white px-4 sm:px-6 py-3.5 sm:py-4 rounded-2xl shadow-2xl flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-bold opacity-80">{cartCount} Items in Cart</p>
-              <p className="text-lg font-black">${cartTotal.toFixed(2)}</p>
+              <p className="text-[11px] sm:text-xs font-bold opacity-90">{cartCount} {cartCount === 1 ? 'Item' : 'Items'} in Cart</p>
+              <p className="text-base sm:text-lg font-black">${cartTotal.toFixed(2)}</p>
             </div>
-            <button onClick={() => window.location.href = '/checkout'} className="ml-auto bg-white text-primary font-black text-sm px-5 py-2 rounded-xl hover:bg-slate-100 transition-all">
+            <button onClick={() => window.location.href = '/checkout'} className="bg-white text-primary font-black text-xs sm:text-sm px-4 sm:px-5 py-2.5 rounded-xl hover:bg-slate-100 transition-all flex items-center gap-1.5 shadow-md flex-shrink-0">
               Checkout →
             </button>
           </div>

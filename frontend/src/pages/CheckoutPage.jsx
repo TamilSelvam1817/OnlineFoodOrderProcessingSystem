@@ -180,18 +180,18 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] dark:bg-slate-900 py-8">
-      <div className="max-w-6xl mx-auto px-4 grid lg:grid-cols-3 gap-8">
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-slate-900 py-4 sm:py-8 px-2 sm:px-4">
+      <div className="max-w-6xl mx-auto grid lg:grid-cols-3 gap-6 sm:gap-8">
 
         {/* Left: Steps */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Step Indicator */}
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-4 px-2">
             {[{ n: 1, label: 'Delivery' }, { n: 2, label: 'Payment' }].map(({ n, label }) => (
               <div key={n} className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black transition-all ${step >= n ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'}`}>{n}</div>
-                <span className={`text-sm font-bold ${step >= n ? 'text-slate-800 dark:text-white' : 'text-slate-400'}`}>{label}</span>
-                {n < 2 && <div className={`w-16 h-0.5 mx-2 ${step > n ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700'}`}></div>}
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-black transition-all ${step >= n ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'}`}>{n}</div>
+                <span className={`text-xs sm:text-sm font-bold ${step >= n ? 'text-slate-800 dark:text-white' : 'text-slate-400'}`}>{label}</span>
+                {n < 2 && <div className={`w-8 sm:w-16 h-0.5 mx-1 sm:mx-2 ${step > n ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700'}`}></div>}
               </div>
             ))}
           </div>
