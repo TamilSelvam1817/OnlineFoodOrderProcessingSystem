@@ -193,7 +193,7 @@ export default function OrdersPage() {
               const activeIndex = STATUS_STEPS.indexOf(currentNorm);
               const isCancelled = currentNorm === 'CANCELLED';
               const isDelivered = currentNorm === 'DELIVERED';
-              const isCancellable = !isCancelled;
+              const isCancellable = !isDelivered && !isCancelled;
               const currentConf = statusConfig[currentNorm] || statusConfig.ORDER_PLACED;
 
               return (
