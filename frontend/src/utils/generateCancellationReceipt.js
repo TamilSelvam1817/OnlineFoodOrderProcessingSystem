@@ -77,13 +77,16 @@ export function generateCancellationReceipt(order) {
 
   const orderDate = formatDate(order.createdAt || order.orderPlacedAt);
 
+  const reasonText = order.cancellationReason || 'Customer Requested Cancellation';
+  const payStatus = order.paymentStatus || (order.paymentMethod === 'Cash on Delivery' || order.paymentMethod === 'COD' ? 'CANCELLED' : 'REFUNDED');
+
   const details = [
     ['Order ID', '#' + order.id],
     ['Order Date & Time', orderDate],
     ['Payment Method', order.paymentMethod || 'UPI'],
-    ['Payment Status', 'FAILED'],
+    ['Payment Status', payStatus],
     ['Order Status', 'CANCELLED'],
-    ['Reason', 'Payment Transaction Failed'],
+    ['Reason', reasonText],
   ];
 
   details.forEach(([label, value], i) => {
@@ -107,16 +110,22 @@ export function generateCancellationReceipt(order) {
   doc.setDrawColor(254, 202, 202);
   doc.roundedRect(margin, noticeY, pageWidth - margin * 2, 18, 2, 2, 'FD');
 
+  const noticeTitle = payStatus === 'REFUNDED' ? 'ORDER CANCELLED — REFUND INITIATED' : 'ORDER CANCELLED';
+  const noticeLine1 = `This order was cancelled (${reasonText}).`;
+  const noticeLine2 = payStatus === 'REFUNDED'
+    ? `A full refund of $${Number(order.totalAmount || 0).toFixed(2)} has been initiated to your payment method.`
+    : 'No payment was collected or charges have been voided for this order.';
+
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(185, 28, 28);
-  doc.text('ATTENTION: TRANSACTION FAILED', margin + 4, noticeY + 6);
+  doc.text(noticeTitle, margin + 4, noticeY + 6);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(127, 29, 29);
-  doc.text('This order was cancelled because the payment transaction could not be processed.', margin + 4, noticeY + 11);
-  doc.text('No funds were charged to your bank account or payment method.', margin + 4, noticeY + 15);
+  doc.text(noticeLine1, margin + 4, noticeY + 11);
+  doc.text(noticeLine2, margin + 4, noticeY + 15);
 
   // --- Items Table ---
   const tableStartY = noticeY + 24;
