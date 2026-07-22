@@ -84,17 +84,14 @@ export default function OrdersPage() {
         console.warn('Could not fetch fresh order data, using current view state', fErr);
       }
 
-      // 1. Download PDF locally in browser
+      // 1. Generate & download PDF in browser instantly
       generateInvoice(currentOrder);
+      showToast('success', '✅ Invoice PDF downloaded! Email delivery dispatched.');
 
-      // 2. Trigger backend API to send PDF invoice email to registered email address
-      try {
-        await orderService.sendGmailInvoice(order.id);
-        showToast('success', '✅ Invoice PDF downloaded & emailed to your registered email address!');
-      } catch (eErr) {
-        console.warn('Backend invoice email request note:', eErr);
-        showToast('success', '✅ Invoice PDF downloaded successfully.');
-      }
+      // 2. Trigger backend invoice email asynchronously (non-blocking)
+      orderService.sendGmailInvoice(order.id).catch((eErr) => {
+        console.warn('Backend invoice email dispatch note:', eErr);
+      });
     } catch (err) {
       showToast('error', 'Failed to generate invoice PDF.');
     } finally {

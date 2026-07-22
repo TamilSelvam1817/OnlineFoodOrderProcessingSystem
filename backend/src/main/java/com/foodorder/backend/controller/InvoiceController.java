@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 public class InvoiceController {
@@ -54,35 +55,38 @@ public class InvoiceController {
 
         log.info("[InvoiceController] Invoice request received for Order #{}", targetOrderId);
 
-        try {
-            boolean success = invoiceService.generateAndSendInvoice(targetOrderId);
+        final Long idToProcess = targetOrderId;
+        String currentEmail = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-            // Optional: Also send via Google OAuth Gmail API if connected
-            String currentEmail = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            Optional<User> userOpt = userRepository.findByEmail(currentEmail);
-            if (userOpt.isPresent()) {
-                Optional<GoogleAccount> accountOpt = googleAccountRepository.findByUser(userOpt.get());
-                if (accountOpt.isPresent() && accountOpt.get().getAccessToken() != null) {
-                    Optional<Order> orderOpt = orderRepository.findById(targetOrderId);
-                    if (orderOpt.isPresent()) {
-                        try {
-                            gmailService.sendInvoiceViaGmail(orderOpt.get(), accountOpt.get());
-                            log.info("[InvoiceController] Sent invoice via Google OAuth Gmail API");
-                        } catch (Exception gEx) {
-                            log.warn("[InvoiceController] Optional OAuth Gmail delivery skipped: {}", gEx.getMessage());
+        // Fire invoice email dispatch asynchronously so the HTTP request returns instantly
+        CompletableFuture.runAsync(() -> {
+            try {
+                boolean success = invoiceService.generateAndSendInvoice(idToProcess);
+                log.info("[InvoiceController] Central invoice email dispatch result for Order #{}: {}", idToProcess, success);
+
+                // Optional: Also send via Google OAuth Gmail API if connected
+                if (currentEmail != null) {
+                    Optional<User> userOpt = userRepository.findByEmail(currentEmail);
+                    if (userOpt.isPresent()) {
+                        Optional<GoogleAccount> accountOpt = googleAccountRepository.findByUser(userOpt.get());
+                        if (accountOpt.isPresent() && accountOpt.get().getAccessToken() != null) {
+                            Optional<Order> orderOpt = orderRepository.findById(idToProcess);
+                            if (orderOpt.isPresent()) {
+                                try {
+                                    gmailService.sendInvoiceViaGmail(orderOpt.get(), accountOpt.get());
+                                    log.info("[InvoiceController] Sent invoice via Google OAuth Gmail API for Order #{}", idToProcess);
+                                } catch (Exception gEx) {
+                                    log.warn("[InvoiceController] Optional OAuth Gmail delivery skipped: {}", gEx.getMessage());
+                                }
+                            }
                         }
                     }
                 }
+            } catch (Exception e) {
+                log.error("[InvoiceController] ❌ Exception during async invoice processing for Order #{}: {}", idToProcess, e.getMessage(), e);
             }
+        });
 
-            if (success) {
-                return ResponseEntity.ok(Map.of("message", "Invoice PDF emailed successfully!"));
-            } else {
-                return ResponseEntity.ok(Map.of("message", "Invoice generated. Email delivery attempted."));
-            }
-        } catch (Exception e) {
-            log.error("[InvoiceController] ❌ Exception during invoice email processing for Order #{}: {}", targetOrderId, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Failed to send invoice email: " + e.getMessage()));
-        }
+        return ResponseEntity.ok(Map.of("message", "Invoice PDF generation & email delivery started!"));
     }
 }
