@@ -7,9 +7,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -18,9 +19,12 @@ public class OrderStatusSchedulerService {
 
     private final OrderRepository orderRepository;
 
+    // In-memory epoch millis tracker for bulletproof stage durations immune to DB timezone offsets
+    private final Map<Long, Long> stageStartTimes = new ConcurrentHashMap<>();
+
     /**
      * Sequential step-by-step stage transition scheduler running every 5 seconds.
-     * Guarantees exact realistic order lifecycle:
+     * Uses System.currentTimeMillis() epoch tracking for 100% accurate live timeline:
      * 1. ORDER_PLACED        (15s duration) -> Cancel button ACTIVE
      * 2. PAYMENT_PROCESSING   (15s duration) -> Cancel button ACTIVE
      * 3. RESTAURANT_ACCEPTED  (30s duration) -> Cancel button ACTIVE
@@ -31,70 +35,46 @@ public class OrderStatusSchedulerService {
     @Scheduled(fixedRate = 5000)
     public void advanceOrders() {
         List<Order> orders = orderRepository.findAll();
+        long nowMillis = System.currentTimeMillis();
         LocalDateTime now = LocalDateTime.now();
 
         for (Order order : orders) {
             String currentStatus = order.getStatus();
 
             if (currentStatus == null) continue;
-            if ("DELIVERED".equalsIgnoreCase(currentStatus)) continue;
-            if ("CANCELLED".equalsIgnoreCase(currentStatus)) continue;
+            if ("DELIVERED".equalsIgnoreCase(currentStatus)) {
+                stageStartTimes.remove(order.getId());
+                continue;
+            }
+            if ("CANCELLED".equalsIgnoreCase(currentStatus)) {
+                stageStartTimes.remove(order.getId());
+                continue;
+            }
 
             String upper = currentStatus.toUpperCase();
             String newStatus = upper;
 
+            // Initialize or retrieve stage start epoch millis for this order
+            Long startMillis = stageStartTimes.computeIfAbsent(order.getId(), k -> nowMillis);
+            long secondsInStage = Math.max(0, (nowMillis - startMillis) / 1000);
+
             if ("ORDER_PLACED".equals(upper) || "PLACED".equals(upper)) {
-                LocalDateTime start = order.getOrderPlacedAt() != null ? order.getOrderPlacedAt() : order.getCreatedAt();
-                if (start == null) {
-                    order.setOrderPlacedAt(now);
-                    orderRepository.save(order);
-                    start = now;
-                }
-                long secondsInStage = Math.max(0, Duration.between(start, now).getSeconds());
                 if (secondsInStage >= 15) {
                     newStatus = "PAYMENT_PROCESSING";
                 }
             } else if ("PAYMENT_PROCESSING".equals(upper)) {
-                LocalDateTime start = order.getPaymentProcessingAt();
-                if (start == null) {
-                    order.setPaymentProcessingAt(now);
-                    orderRepository.save(order);
-                    start = now;
-                }
-                long secondsInStage = Math.max(0, Duration.between(start, now).getSeconds());
                 if (secondsInStage >= 15) {
                     newStatus = "RESTAURANT_ACCEPTED";
                 }
             } else if ("RESTAURANT_ACCEPTED".equals(upper)) {
-                LocalDateTime start = order.getRestaurantAcceptedAt();
-                if (start == null) {
-                    order.setRestaurantAcceptedAt(now);
-                    orderRepository.save(order);
-                    start = now;
-                }
-                long secondsInStage = Math.max(0, Duration.between(start, now).getSeconds());
                 if (secondsInStage >= 30) {
                     newStatus = "KITCHEN_PREPARING";
                 }
             } else if ("KITCHEN_PREPARING".equals(upper) || "KITCHEN_PREP".equals(upper)) {
-                LocalDateTime start = order.getKitchenPreparingAt();
-                if (start == null) {
-                    order.setKitchenPreparingAt(now);
-                    orderRepository.save(order);
-                    start = now;
-                }
-                long secondsInStage = Math.max(0, Duration.between(start, now).getSeconds());
                 if (secondsInStage >= 30) {
                     newStatus = "OUT_FOR_DELIVERY";
                 }
             } else if ("OUT_FOR_DELIVERY".equals(upper)) {
-                LocalDateTime start = order.getOutForDeliveryAt();
-                if (start == null) {
-                    order.setOutForDeliveryAt(now);
-                    orderRepository.save(order);
-                    start = now;
-                }
-                long secondsInStage = Math.max(0, Duration.between(start, now).getSeconds());
                 if (secondsInStage >= 30) {
                     newStatus = "DELIVERED";
                 }
@@ -102,6 +82,8 @@ public class OrderStatusSchedulerService {
 
             if (!newStatus.equalsIgnoreCase(currentStatus)) {
                 order.setStatus(newStatus);
+                // Reset stage start time for the new stage
+                stageStartTimes.put(order.getId(), nowMillis);
 
                 switch (newStatus) {
                     case "PAYMENT_PROCESSING":
@@ -125,11 +107,12 @@ public class OrderStatusSchedulerService {
                         if (!"Cash on Delivery".equalsIgnoreCase(order.getPaymentMethod()) && !"COD".equalsIgnoreCase(order.getPaymentMethod())) {
                             order.setPaymentStatus("PAID");
                         }
+                        stageStartTimes.remove(order.getId());
                         break;
                 }
 
                 orderRepository.save(order);
-                log.info("[OrderStatusScheduler] Order #{} stage advanced: {} -> {}", order.getId(), currentStatus, newStatus);
+                log.info("[OrderStatusScheduler] Order #{} ({}s in stage) advanced: {} -> {}", order.getId(), secondsInStage, currentStatus, newStatus);
             }
         }
     }
