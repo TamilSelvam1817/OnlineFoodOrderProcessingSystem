@@ -63,42 +63,32 @@ const getStageTimestamp = (s, order) => {
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sendingId, setSendingId] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [cancelModalOrder, setCancelModalOrder] = useState(null);
-  const [selectedReason, setSelectedReason] = useState('Ordered by mistake');
-  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancellingId, setCancellingId] = useState(null);
 
   const showToast = (type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 5000);
   };
 
-  const openCancelModal = (order) => {
-    setCancelModalOrder(order);
-    setSelectedReason('Ordered by mistake');
-  };
-
-  const confirmCancelOrder = async () => {
-    if (!cancelModalOrder) return;
-    setCancelLoading(true);
+  const handleDirectCancelOrder = async (order) => {
+    setCancellingId(order.id);
     try {
-      const res = await orderService.cancelOrder(cancelModalOrder.id, selectedReason);
-      const updatedOrder = res.data || { ...cancelModalOrder, status: 'CANCELLED', paymentStatus: 'REFUNDED' };
-      
+      const defaultReason = 'Customer requested cancellation';
+      const res = await orderService.cancelOrder(order.id, defaultReason);
+      const updatedOrder = res.data || { ...order, status: 'CANCELLED', paymentStatus: 'REFUNDED', cancellationReason: defaultReason };
+
       generateCancellationReceipt(updatedOrder);
 
       setOrders((prev) =>
-        prev.map((o) => (o.id === cancelModalOrder.id ? { ...o, status: 'CANCELLED', paymentStatus: 'REFUNDED', cancellationReason: selectedReason } : o))
+        prev.map((o) => (o.id === order.id ? { ...o, status: 'CANCELLED', paymentStatus: 'REFUNDED', cancellationReason: defaultReason } : o))
       );
 
-      showToast('success', `❌ Order #${cancelModalOrder.id} cancelled. Cancellation receipt downloaded.`);
-      setCancelModalOrder(null);
+      showToast('success', `❌ Order #${order.id} cancelled successfully.`);
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to cancel order.';
       showToast('error', msg);
     } finally {
-      setCancelLoading(false);
+      setCancellingId(null);
     }
   };
 
@@ -157,70 +147,7 @@ export default function OrdersPage() {
         </div>
       )}
 
-      <AnimatePresence>
-        {cancelModalOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 dark:border-slate-700">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
-                  <FaExclamationTriangle className="text-red-500" /> Cancel Order #{cancelModalOrder.id}
-                </h3>
-                <button onClick={() => setCancelModalOrder(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                  <FaTimes size={18} />
-                </button>
-              </div>
 
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                Please select a reason for cancelling your order. Your order status will be updated immediately.
-              </p>
-
-              <div className="space-y-2 mb-6">
-                {[
-                  'Ordered by mistake',
-                  'Incorrect delivery address',
-                  'Estimated delivery time too long',
-                  'Changed my mind',
-                  'Other reason'
-                ].map((reason) => (
-                  <label key={reason} className={`flex items-center gap-3 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
-                    selectedReason === reason
-                      ? 'border-red-500 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="cancellationReason"
-                      value={reason}
-                      checked={selectedReason === reason}
-                      onChange={() => setSelectedReason(reason)}
-                      className="accent-red-500"
-                    />
-                    {reason}
-                  </label>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-end gap-3">
-                <button
-                  onClick={() => setCancelModalOrder(null)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={confirmCancelOrder}
-                  disabled={cancelLoading}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition-all shadow-md shadow-red-500/30 disabled:opacity-60 flex items-center gap-2"
-                >
-                  {cancelLoading ? <FaSpinner className="animate-spin" /> : null}
-                  {cancelLoading ? 'Cancelling...' : 'Confirm Cancellation'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-black text-slate-800 dark:text-white mb-2">My Orders</h1>
@@ -344,10 +271,12 @@ export default function OrdersPage() {
                         )}
                         {isCancellable && (
                           <button
-                            onClick={() => openCancelModal(order)}
-                            className="flex items-center gap-1.5 text-xs font-bold text-red-500 hover:text-white border border-red-200 dark:border-red-800 hover:bg-red-500 transition-all px-3.5 py-2 rounded-xl"
+                            onClick={() => handleDirectCancelOrder(order)}
+                            disabled={cancellingId === order.id}
+                            className="flex items-center gap-1.5 text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition-all px-4 py-2 rounded-xl shadow-sm shadow-red-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
                           >
-                            <FaTimes /> Cancel Order
+                            {cancellingId === order.id ? <FaSpinner className="animate-spin" /> : <FaTimes />}
+                            {cancellingId === order.id ? 'Cancelling...' : 'Cancel Order'}
                           </button>
                         )}
                       </div>
