@@ -21,8 +21,12 @@ public class OrderDeliveredDelegate implements JavaDelegate {
 
     @Override
     public void execute(DelegateExecution execution) throws Exception {
-        // Status progression is managed on a 90s live timeline by OrderStatusSchedulerService
+
+        Long orderId = Long.valueOf(execution.getBusinessKey());
+
+        // Status progression is handled by OrderStatusSchedulerService
         // orderStatusService.updateOrderStatus(orderId, "DELIVERED");
+
         log.info("[OrderService] Order #{} - Workflow COMPLETE", orderId);
     }
 }
