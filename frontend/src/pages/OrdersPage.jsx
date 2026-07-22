@@ -64,6 +64,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
+  const [sendingId, setSendingId] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const showToast = (type, message) => {
     setToast({ type, message });
