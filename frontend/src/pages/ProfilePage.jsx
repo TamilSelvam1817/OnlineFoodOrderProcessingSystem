@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '../redux/slices/authSlice';
+import { logout, updateProfile as updateAuthProfile } from '../redux/slices/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
 import { showToast } from '../components/Toast';
 import { authService } from '../services/api';
-import { FaUser, FaMapMarkerAlt, FaClipboardList, FaHeart, FaSignOutAlt, FaPlus, FaEdit } from 'react-icons/fa';
+import { FaUser, FaMapMarkerAlt, FaClipboardList, FaHeart, FaSignOutAlt, FaPlus, FaEdit, FaSave, FaTimes, FaLock, FaEnvelope, FaSpinner } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
 export default function ProfilePage() {
@@ -14,6 +14,12 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('personal');
   const [newAddress, setNewAddress] = useState('');
   const [addingAddress, setAddingAddress] = useState(false);
+
+  // Profile Edit State
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editPassword, setEditPassword] = useState('');
+  const [updatingProfile, setUpdatingProfile] = useState(false);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -33,8 +39,39 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!editName.trim()) {
+      showToast('Name cannot be empty', 'error');
+      return;
+    }
+
+    setUpdatingProfile(true);
+    try {
+      const payload = { name: editName.trim() };
+      if (editPassword.trim()) {
+        payload.password = editPassword.trim();
+      }
+
+      await authService.updateProfile(payload);
+      dispatch(updateAuthProfile({ name: editName.trim() }));
+      setIsEditingProfile(false);
+      setEditPassword('');
+      showToast('Profile updated successfully! 🎉', 'success');
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to update profile';
+      showToast(msg, 'error');
+    } finally {
+      setUpdatingProfile(false);
+    }
+  };
+
   if (!user) {
-    return <div className="min-h-screen flex items-center justify-center"><p className="text-slate-400">Please login to view profile</p></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-slate-400">Please login to view profile</p>
+      </div>
+    );
   }
 
   const tabs = [
@@ -51,7 +88,7 @@ export default function ProfilePage() {
         {/* Left Panel */}
         <div className="lg:col-span-1">
           <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm p-6 text-center mb-4">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-2xl font-black mx-auto mb-4">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-2xl font-black mx-auto mb-4 shadow-lg shadow-primary/20">
               {user.name?.charAt(0)?.toUpperCase()}
             </div>
             <h2 className="text-base font-black text-slate-800 dark:text-white">{user.name}</h2>
@@ -64,12 +101,20 @@ export default function ProfilePage() {
           {/* Nav */}
           <nav className="space-y-1.5 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm p-3">
             {tabs.map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${activeTab === tab.id ? 'bg-primary text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${
+                  activeTab === tab.id ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                }`}
+              >
                 {tab.icon} {tab.label}
               </button>
             ))}
-            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all mt-2 border-t border-slate-100 dark:border-slate-700 pt-3">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all mt-2 border-t border-slate-100 dark:border-slate-700 pt-3"
+            >
               <FaSignOutAlt /> Logout
             </button>
           </nav>
@@ -77,30 +122,122 @@ export default function ProfilePage() {
 
         {/* Right Panel */}
         <div className="lg:col-span-3">
-          <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm p-6">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm p-6"
+          >
 
+            {/* Personal Information Tab */}
             {activeTab === 'personal' && (
               <div>
-                <h2 className="text-lg font-black text-slate-800 dark:text-white mb-6">Personal Information</h2>
-                <div className="grid sm:grid-cols-2 gap-5">
-                  {[
-                    { label: 'Full Name', value: user.name },
-                    { label: 'Email Address', value: user.email },
-                    { label: 'Account Role', value: user.role?.replace('ROLE_', '') },
-                    { label: 'User ID', value: `#${user.id}` },
-                  ].map((field) => (
-                    <div key={field.label} className="bg-slate-50 dark:bg-slate-900 rounded-2xl px-4 py-4 border border-slate-100 dark:border-slate-700">
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">{field.label}</p>
-                      <p className="text-sm font-bold text-slate-800 dark:text-white">{field.value}</p>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-black text-slate-800 dark:text-white">Personal Information</h2>
+                  {!isEditingProfile && (
+                    <button
+                      onClick={() => {
+                        setEditName(user.name || '');
+                        setIsEditingProfile(true);
+                      }}
+                      className="flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-xl text-sm font-bold transition-all"
+                    >
+                      <FaEdit /> Edit Profile
+                    </button>
+                  )}
                 </div>
-                <button className="mt-6 flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary px-5 py-2.5 rounded-xl text-sm font-bold transition-all">
-                  <FaEdit /> Edit Profile
-                </button>
+
+                {isEditingProfile ? (
+                  <form onSubmit={handleSaveProfile} className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                        Full Name
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary font-bold"
+                          placeholder="Enter your full name"
+                          required
+                        />
+                        <FaUser className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                        Email Address <span className="text-[10px] text-slate-400 font-normal lowercase">(read-only)</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="email"
+                          value={user.email}
+                          disabled
+                          className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-sm font-medium cursor-not-allowed"
+                        />
+                        <FaEnvelope className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                        New Password <span className="text-[10px] text-slate-400 font-normal lowercase">(leave blank to keep current)</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="password"
+                          value={editPassword}
+                          onChange={(e) => setEditPassword(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary font-bold"
+                          placeholder="Enter new password"
+                        />
+                        <FaLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        type="submit"
+                        disabled={updatingProfile}
+                        className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-primary/20 transition-all disabled:opacity-50"
+                      >
+                        {updatingProfile ? <FaSpinner className="animate-spin" /> : <FaSave />}
+                        {updatingProfile ? 'Saving...' : 'Save Changes'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingProfile(false);
+                          setEditName(user.name || '');
+                          setEditPassword('');
+                        }}
+                        className="flex items-center gap-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
+                      >
+                        <FaTimes /> Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-5">
+                    {[
+                      { label: 'Full Name', value: user.name },
+                      { label: 'Email Address', value: user.email },
+                      { label: 'Account Role', value: user.role?.replace('ROLE_', '') },
+                      { label: 'User ID', value: `#${user.id}` },
+                    ].map((field) => (
+                      <div key={field.label} className="bg-slate-50 dark:bg-slate-900 rounded-2xl px-4 py-4 border border-slate-100 dark:border-slate-700">
+                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">{field.label}</p>
+                        <p className="text-sm font-bold text-slate-800 dark:text-white">{field.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
+            {/* Saved Addresses Tab */}
             {activeTab === 'addresses' && (
               <div>
                 <div className="flex items-center justify-between mb-6">
@@ -111,19 +248,25 @@ export default function ProfilePage() {
                 </div>
                 {addingAddress && (
                   <div className="mb-6 flex gap-3">
-                    <input type="text" placeholder="Enter full address..." value={newAddress} onChange={(e) => setNewAddress(e.target.value)}
-                      className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                    <input
+                      type="text"
+                      placeholder="Enter full address..."
+                      value={newAddress}
+                      onChange={(e) => setNewAddress(e.target.value)}
+                      className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary font-bold"
                     />
-                    <button onClick={handleAddAddress} className="bg-primary text-white px-5 py-3 rounded-xl text-sm font-bold">Save</button>
+                    <button onClick={handleAddAddress} className="bg-primary text-white px-5 py-3 rounded-xl text-sm font-bold hover:bg-primary-dark transition-all">Save</button>
                   </div>
                 )}
                 <div className="space-y-3">
-                  {user.addresses?.length > 0 ? user.addresses.map((addr, i) => (
-                    <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-700">
-                      <FaMapMarkerAlt className="text-primary flex-shrink-0" />
-                      <p className="text-sm text-slate-700 dark:text-slate-300 flex-1">{addr}</p>
-                    </div>
-                  )) : (
+                  {user.addresses?.length > 0 ? (
+                    user.addresses.map((addr, i) => (
+                      <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-700">
+                        <FaMapMarkerAlt className="text-primary flex-shrink-0" />
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 flex-1">{addr}</p>
+                      </div>
+                    ))
+                  ) : (
                     <div className="text-center py-12 text-slate-400">
                       <FaMapMarkerAlt className="text-4xl mx-auto mb-3 opacity-30" />
                       <p>No saved addresses yet</p>
@@ -133,17 +276,21 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {/* Order History Tab */}
             {activeTab === 'orders' && (
               <div>
                 <h2 className="text-lg font-black text-slate-800 dark:text-white mb-6">Order History</h2>
                 <div className="text-center py-12">
                   <FaClipboardList className="text-5xl text-slate-200 dark:text-slate-700 mx-auto mb-4" />
                   <p className="text-slate-400 mb-4">View your full order history</p>
-                  <Link to="/orders" className="bg-primary text-white px-6 py-2.5 rounded-xl text-sm font-bold inline-block hover:bg-primary-dark transition-all">Go to Orders</Link>
+                  <Link to="/orders" className="bg-primary text-white px-6 py-2.5 rounded-xl text-sm font-bold inline-block hover:bg-primary-dark transition-all shadow-md shadow-primary/20">
+                    Go to Orders
+                  </Link>
                 </div>
               </div>
             )}
 
+            {/* Wishlist Tab */}
             {activeTab === 'wishlist' && (
               <div>
                 <h2 className="text-lg font-black text-slate-800 dark:text-white mb-6">Wishlist</h2>

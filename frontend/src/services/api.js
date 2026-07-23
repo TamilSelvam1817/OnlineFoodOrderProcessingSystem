@@ -47,6 +47,7 @@ export const authService = {
   register: (userData) => API.post('/auth/register', userData),
   login: (credentials) => API.post('/auth/login', credentials),
   getCurrentUser: () => API.get('/auth/me'),
+  updateProfile: (profileData) => API.put('/auth/profile', profileData),
   addAddress: (address) => API.post('/auth/address', { address }),
   getGoogleStatus: async () => {
     try {

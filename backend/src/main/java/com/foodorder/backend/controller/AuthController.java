@@ -106,4 +106,35 @@ public class AuthController {
         }
         return ResponseEntity.ok(user.getAddresses());
     }
+
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> request) {
+        String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("message", "User not found"));
+        }
+        User user = userOpt.get();
+
+        String name = request.get("name");
+        if (name != null && !name.trim().isEmpty()) {
+            user.setName(name.trim());
+        }
+
+        String password = request.get("password");
+        if (password != null && !password.trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(password));
+        }
+
+        userRepository.save(user);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", user.getId());
+        response.put("name", user.getName());
+        response.put("email", user.getEmail());
+        response.put("role", user.getRole());
+        response.put("addresses", user.getAddresses());
+        response.put("favoriteRestaurantIds", user.getFavoriteRestaurantIds());
+        return ResponseEntity.ok(response);
+    }
 }
