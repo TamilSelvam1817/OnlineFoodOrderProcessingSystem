@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout, updateProfile as updateAuthProfile } from '../redux/slices/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
 import { showToast } from '../components/Toast';
 import { authService } from '../services/api';
-import { FaUser, FaMapMarkerAlt, FaClipboardList, FaHeart, FaSignOutAlt, FaPlus, FaEdit, FaSave, FaTimes, FaLock, FaEnvelope, FaSpinner } from 'react-icons/fa';
+import { FaUser, FaMapMarkerAlt, FaClipboardList, FaHeart, FaSignOutAlt, FaPlus, FaEdit, FaSave, FaTimes, FaLock, FaEnvelope, FaSpinner, FaTrashAlt } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
 export default function ProfilePage() {
@@ -21,6 +21,17 @@ export default function ProfilePage() {
   const [editPassword, setEditPassword] = useState('');
   const [updatingProfile, setUpdatingProfile] = useState(false);
 
+  // Fetch current user from DB on mount to ensure fresh state
+  useEffect(() => {
+    authService.getCurrentUser()
+      .then((res) => {
+        if (res.data) {
+          dispatch(updateAuthProfile(res.data));
+        }
+      })
+      .catch(() => {});
+  }, [dispatch]);
+
   const handleLogout = () => {
     dispatch(logout());
     showToast('Logged out successfully', 'info');
@@ -30,12 +41,25 @@ export default function ProfilePage() {
   const handleAddAddress = async () => {
     if (!newAddress.trim()) return;
     try {
-      await authService.addAddress(newAddress.trim());
+      const res = await authService.addAddress(newAddress.trim());
+      const updatedAddresses = res.data;
+      dispatch(updateAuthProfile({ addresses: updatedAddresses }));
       setNewAddress('');
       setAddingAddress(false);
-      showToast('Address added!', 'success');
+      showToast('Address added successfully! 📍', 'success');
     } catch {
       showToast('Failed to add address', 'error');
+    }
+  };
+
+  const handleDeleteAddress = async (index) => {
+    try {
+      const res = await authService.deleteAddress(index);
+      const updatedAddresses = res.data;
+      dispatch(updateAuthProfile({ addresses: updatedAddresses }));
+      showToast('Address removed', 'info');
+    } catch {
+      showToast('Failed to remove address', 'error');
     }
   };
 
@@ -242,7 +266,7 @@ export default function ProfilePage() {
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-black text-slate-800 dark:text-white">Saved Addresses</h2>
-                  <button onClick={() => setAddingAddress(!addingAddress)} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-primary-dark transition-all">
+                  <button onClick={() => setAddingAddress(!addingAddress)} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-primary-dark transition-all shadow-md shadow-primary/20">
                     <FaPlus /> Add New
                   </button>
                 </div>
@@ -250,26 +274,37 @@ export default function ProfilePage() {
                   <div className="mb-6 flex gap-3">
                     <input
                       type="text"
-                      placeholder="Enter full address..."
+                      placeholder="Enter full address (e.g. Guindy, Chennai)..."
                       value={newAddress}
                       onChange={(e) => setNewAddress(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddAddress()}
                       className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary font-bold"
                     />
-                    <button onClick={handleAddAddress} className="bg-primary text-white px-5 py-3 rounded-xl text-sm font-bold hover:bg-primary-dark transition-all">Save</button>
+                    <button onClick={handleAddAddress} className="bg-primary text-white px-5 py-3 rounded-xl text-sm font-bold hover:bg-primary-dark transition-all shadow-md shadow-primary/20">
+                      Save
+                    </button>
                   </div>
                 )}
                 <div className="space-y-3">
                   {user.addresses?.length > 0 ? (
                     user.addresses.map((addr, i) => (
-                      <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-700">
-                        <FaMapMarkerAlt className="text-primary flex-shrink-0" />
-                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 flex-1">{addr}</p>
+                      <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-700 transition-all hover:border-slate-200 dark:hover:border-slate-600">
+                        <FaMapMarkerAlt className="text-primary flex-shrink-0 text-lg" />
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200 flex-1">{addr}</p>
+                        <button
+                          onClick={() => handleDeleteAddress(i)}
+                          className="p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+                          title="Remove address"
+                        >
+                          <FaTrashAlt className="text-sm" />
+                        </button>
                       </div>
                     ))
                   ) : (
                     <div className="text-center py-12 text-slate-400">
                       <FaMapMarkerAlt className="text-4xl mx-auto mb-3 opacity-30" />
-                      <p>No saved addresses yet</p>
+                      <p className="font-bold text-sm text-slate-600 dark:text-slate-300">No saved addresses yet</p>
+                      <p className="text-xs text-slate-400 mt-1">Add your address to speed up checkout</p>
                     </div>
                   )}
                 </div>

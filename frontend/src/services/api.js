@@ -49,6 +49,7 @@ export const authService = {
   getCurrentUser: () => API.get('/auth/me'),
   updateProfile: (profileData) => API.put('/auth/profile', profileData),
   addAddress: (address) => API.post('/auth/address', { address }),
+  deleteAddress: (index) => API.delete('/auth/address', { params: { index } }),
   getGoogleStatus: async () => {
     try {
       return await API.get('/auth/google-status');

@@ -101,7 +101,22 @@ public class AuthController {
         User user = userOpt.get();
         String address = request.get("address");
         if (address != null && !address.trim().isEmpty()) {
-            user.getAddresses().add(address);
+            user.getAddresses().add(address.trim());
+            userRepository.save(user);
+        }
+        return ResponseEntity.ok(user.getAddresses());
+    }
+
+    @DeleteMapping("/address")
+    public ResponseEntity<?> deleteAddress(@RequestParam("index") int index) {
+        String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("message", "User not found"));
+        }
+        User user = userOpt.get();
+        if (index >= 0 && index < user.getAddresses().size()) {
+            user.getAddresses().remove(index);
             userRepository.save(user);
         }
         return ResponseEntity.ok(user.getAddresses());
