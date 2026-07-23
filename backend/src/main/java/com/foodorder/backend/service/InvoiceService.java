@@ -29,13 +29,18 @@ public class InvoiceService {
     @PersistenceContext
     private EntityManager entityManager;
 
+    @Transactional(readOnly = true)
+    public boolean generateAndSendInvoice(Long orderId) {
+        return generateAndSendInvoice(orderId, null);
+    }
+
     /**
      * Always reloads the latest Order entity directly from the database,
      * ensuring fresh state (DELIVERED, PAID) before PDF generation and email dispatch.
      */
     @Transactional(readOnly = true)
-    public boolean generateAndSendInvoice(Long orderId) {
-        log.info("[InvoiceService] Loading latest Order from database");
+    public boolean generateAndSendInvoice(Long orderId, String fallbackEmail) {
+        log.info("[InvoiceService] Loading latest Order from database for Order #{}", orderId);
 
         Optional<Order> orderOpt = orderRepository.findById(orderId);
         if (orderOpt.isEmpty()) {
@@ -44,7 +49,6 @@ public class InvoiceService {
         }
 
         Order latestOrder = orderOpt.get();
-        // Clear L1 cache / refresh entity to ensure zero stale cached state
         try {
             entityManager.refresh(latestOrder);
         } catch (Exception e) {
@@ -59,7 +63,7 @@ public class InvoiceService {
         log.info("[InvoiceService] Latest Order Status = {}", latestOrder.getStatus());
         log.info("[InvoiceService] Latest Payment Status = {}", latestOrder.getPaymentStatus());
 
-        log.info("[InvoiceService] Generating PDF");
+        log.info("[InvoiceService] Generating PDF for Order #{}", orderId);
         byte[] pdfBytes = invoiceEmailService.generateInvoicePdf(latestOrder);
 
         if (pdfBytes == null || pdfBytes.length == 0) {
@@ -67,11 +71,11 @@ public class InvoiceService {
             return false;
         }
 
-        log.info("[InvoiceService] Sending Email");
-        boolean sent = emailService.sendInvoiceToCustomer(latestOrder, pdfBytes);
+        log.info("[InvoiceService] Sending Email for Order #{} to recipient or fallback ({})", orderId, fallbackEmail);
+        boolean sent = emailService.sendInvoiceToCustomer(latestOrder, pdfBytes, fallbackEmail);
 
         if (sent) {
-            log.info("[InvoiceService] Invoice Email Sent Successfully");
+            log.info("[InvoiceService] ✅ Invoice Email Sent Successfully for Order #{}", orderId);
         } else {
             log.warn("[InvoiceService] ⚠️ Invoice Email dispatch returned false for Order #{}", orderId);
         }

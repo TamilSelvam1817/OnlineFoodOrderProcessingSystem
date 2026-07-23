@@ -193,9 +193,10 @@ public class OrderService {
 
         // Async email delivery using fresh DB fetch
         final Long createdOrderId = saved.getId();
+        final String recipientEmail = customer.getEmail();
         CompletableFuture.runAsync(() -> {
             try {
-                invoiceService.generateAndSendInvoice(createdOrderId);
+                invoiceService.generateAndSendInvoice(createdOrderId, recipientEmail);
             } catch (Exception e) {
                 log.error("[OrderService] Async customer invoice email error for Order #{}: {}", createdOrderId, e.getMessage());
             }

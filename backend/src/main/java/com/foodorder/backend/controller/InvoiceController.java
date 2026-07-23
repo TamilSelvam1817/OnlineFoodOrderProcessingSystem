@@ -11,7 +11,6 @@ import com.foodorder.backend.service.InvoiceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -58,14 +57,14 @@ public class InvoiceController {
         final Long idToProcess = targetOrderId;
         String currentEmail = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        // Fire invoice email dispatch asynchronously so the HTTP request returns instantly
+        // Fire invoice email dispatch asynchronously with fallback user email
         CompletableFuture.runAsync(() -> {
             try {
-                boolean success = invoiceService.generateAndSendInvoice(idToProcess);
+                boolean success = invoiceService.generateAndSendInvoice(idToProcess, currentEmail);
                 log.info("[InvoiceController] Central invoice email dispatch result for Order #{}: {}", idToProcess, success);
 
                 // Optional: Also send via Google OAuth Gmail API if connected
-                if (currentEmail != null) {
+                if (currentEmail != null && !currentEmail.equals("anonymousUser")) {
                     Optional<User> userOpt = userRepository.findByEmail(currentEmail);
                     if (userOpt.isPresent()) {
                         Optional<GoogleAccount> accountOpt = googleAccountRepository.findByUser(userOpt.get());

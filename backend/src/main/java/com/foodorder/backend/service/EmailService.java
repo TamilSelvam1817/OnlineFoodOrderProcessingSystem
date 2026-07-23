@@ -31,15 +31,31 @@ public class EmailService {
     @Value("${spring.mail.username:byteburst.orders@gmail.com}")
     private String fromEmail;
 
+    public boolean sendInvoiceToCustomer(Order order, byte[] pdfBytes) {
+        return sendInvoiceToCustomer(order, pdfBytes, null);
+    }
+
     /**
      * Sends the ByteBurst Order Confirmation and PDF Invoice to the authenticated customer.
+     * Uses fallbackEmail if order.getCustomer() is null or customer email is blank.
      */
-    public boolean sendInvoiceToCustomer(Order order, byte[] pdfBytes) {
+    public boolean sendInvoiceToCustomer(Order order, byte[] pdfBytes, String fallbackEmail) {
         log.info("[EmailService] 1. Invoice request received for Order #{}", order.getId());
 
         User customer = order.getCustomer();
         String customerEmail = customer != null ? customer.getEmail() : null;
-        String customerName = customer != null ? customer.getName() : order.getCustomerName();
+
+        if (customerEmail == null || customerEmail.isBlank()) {
+            customerEmail = fallbackEmail;
+        }
+
+        if ((customerEmail == null || customerEmail.isBlank()) && order.getCustomerName() != null && order.getCustomerName().contains("@")) {
+            customerEmail = order.getCustomerName();
+        }
+
+        String customerName = (customer != null && customer.getName() != null && !customer.getName().isBlank())
+                ? customer.getName()
+                : (order.getCustomerName() != null && !order.getCustomerName().isBlank() ? order.getCustomerName() : "Valued Customer");
 
         if (customerEmail == null || customerEmail.isBlank()) {
             log.error("[EmailService] ❌ Recipient email address missing for Order #{}", order.getId());
@@ -56,7 +72,7 @@ public class EmailService {
         String restaurantName = order.getRestaurant() != null ? order.getRestaurant().getName() : "ByteBurst Partner Kitchen";
         String invoiceNo = String.format("%06d", order.getId());
         String filename = "FoodOrder-Invoice-" + invoiceNo + ".pdf";
-        String subject = "Your ByteBurst Order Confirmation & Invoice";
+        String subject = "Your ByteBurst Order Confirmation & Invoice (#" + order.getId() + ")";
 
         String bodyText = String.format(
             "Hello %s,\n\n" +
@@ -67,7 +83,7 @@ public class EmailService {
             "Estimated Delivery:\n25–35 Minutes\n\n" +
             "Payment Method:\n%s\n\n" +
             "Grand Total:\n$%.2f\n\n" +
-            "Please find your invoice attached.\n\n" +
+            "Please find your invoice PDF attached to this email.\n\n" +
             "Thank you,\nByteBurst Team",
             customerName,
             restaurantName,
@@ -78,7 +94,7 @@ public class EmailService {
 
         try {
             if (mailSender != null) {
-                log.info("[EmailService] 4. Preparing email for Order #{} to {}", order.getId(), customerEmail);
+                log.info("[EmailService] 4. Preparing MimeMessage for Order #{} to recipient {}", order.getId(), customerEmail);
                 MimeMessage message = mailSender.createMimeMessage();
                 message.setFrom(new InternetAddress(fromEmail, "ByteBurst Orders"));
                 message.setRecipient(MimeMessage.RecipientType.TO, new InternetAddress(customerEmail));
@@ -101,13 +117,13 @@ public class EmailService {
 
                 message.setContent(multipart);
 
-                log.info("[EmailService] 6. Sending email via JavaMailSender");
+                log.info("[EmailService] 6. Dispatching SMTP email via JavaMailSender");
                 mailSender.send(message);
 
-                log.info("[EmailService] 7. Email sent successfully to {} for Order #{}", customerEmail, order.getId());
+                log.info("[EmailService] 7. ✅ Email sent successfully to {} for Order #{}", customerEmail, order.getId());
                 return true;
             } else {
-                log.warn("[EmailService] JavaMailSender bean not configured. Skipping email sending for {}", customerEmail);
+                log.warn("[EmailService] ⚠️ JavaMailSender bean not configured. Skipping email sending for {}", customerEmail);
                 return false;
             }
         } catch (Exception e) {
@@ -147,7 +163,7 @@ public class EmailService {
         }
 
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("MMM dd, yyyy hh:mm a");
-        String subject = "New Order Received";
+        String subject = "New Order Received (#" + order.getId() + ")";
 
         String bodyText = String.format(
             "Hello %s,\n\n" +
