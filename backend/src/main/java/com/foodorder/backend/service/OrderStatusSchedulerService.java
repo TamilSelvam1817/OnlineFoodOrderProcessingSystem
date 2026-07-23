@@ -104,10 +104,16 @@ public class OrderStatusSchedulerService {
                         break;
 
                     case "DELIVERED":
-                        if (order.getDeliveredAt() == null) order.setDeliveredAt(now);
-                        if (!"Cash on Delivery".equalsIgnoreCase(order.getPaymentMethod()) && !"COD".equalsIgnoreCase(order.getPaymentMethod())) {
+                        if (order.getDeliveredAt() == null) {
+                            order.setDeliveredAt(now);
+                        }
+
+                        if (!"FAILED".equalsIgnoreCase(order.getPaymentStatus())
+                                && !"REFUNDED".equalsIgnoreCase(order.getPaymentStatus())
+                                && !"CANCELLED".equalsIgnoreCase(order.getPaymentStatus())) {
                             order.setPaymentStatus("PAID");
                         }
+
                         stageStartTimes.remove(order.getId());
                         break;
                 }
