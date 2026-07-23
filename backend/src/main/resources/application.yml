@@ -3,10 +3,12 @@ server:
 
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://${MYSQLHOST:mysql.railway.internal}:${MYSQLPORT:3306}/${MYSQLDATABASE:railway}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://${MYSQLHOST:mysql.railway.internal}:${MYSQLPORT:3306}/${MYSQLDATABASE:railway}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata}
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${MYSQLUSER:${SPRING_DATASOURCE_USERNAME:root}}
     password: ${MYSQLPASSWORD:${SPRING_DATASOURCE_PASSWORD:root}}
+  jackson:
+    time-zone: Asia/Kolkata
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:

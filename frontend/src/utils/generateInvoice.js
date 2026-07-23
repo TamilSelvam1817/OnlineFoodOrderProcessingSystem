@@ -72,15 +72,16 @@ export function generateInvoice(order) {
   doc.setTextColor(60, 60, 60);
 
   const formatDate = (rawDate) => {
-    if (!rawDate) return new Date().toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+    const opts = { timeZone: 'Asia/Kolkata', month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
+    if (!rawDate) return new Date().toLocaleString('en-IN', opts);
     if (typeof rawDate === 'string' && !rawDate.endsWith('Z') && !rawDate.includes('+')) {
       const d = new Date(rawDate.replace(' ', 'T'));
       if (!isNaN(d.getTime())) {
-        return d.toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+        return d.toLocaleString('en-IN', opts);
       }
     }
     const d = new Date(rawDate);
-    return isNaN(d.getTime()) ? String(rawDate) : d.toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+    return isNaN(d.getTime()) ? String(rawDate) : d.toLocaleString('en-IN', opts);
   };
 
   const orderDate = formatDate(order.createdAt || order.orderPlacedAt);

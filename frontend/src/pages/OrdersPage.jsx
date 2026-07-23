@@ -59,7 +59,7 @@ const getStageTimestamp = (s, order) => {
       break;
   }
   if (!rawDate) return null;
-  return new Date(rawDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return new Date(rawDate).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
 };
 
 export default function OrdersPage() {
@@ -214,7 +214,7 @@ export default function OrdersPage() {
                         <span className="text-xs font-bold text-slate-400">Order #{order.id}</span>
                         <span className="text-xs text-slate-300">•</span>
                         <span className="text-xs text-slate-400">
-                          {new Date(order.createdAt || Date.now()).toLocaleDateString()}
+                          {new Date(order.createdAt || Date.now()).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' })}
                         </span>
                       </div>
                       <h3 className="text-xl font-black text-slate-800 dark:text-white mt-1">
