@@ -40,8 +40,28 @@ export default function Navbar({ onCartToggle }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
 
+  const notifRef = useRef(null);
+  const profileRef = useRef(null);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifDropdown(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -109,7 +129,7 @@ export default function Navbar({ onCartToggle }) {
           </button>
 
           {/* Notification Bell Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={notifRef}>
             <button
               onClick={() => {
                 setShowNotifDropdown(!showNotifDropdown);
@@ -127,7 +147,7 @@ export default function Navbar({ onCartToggle }) {
             </button>
 
             {showNotifDropdown && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 py-3 z-50 overflow-hidden">
+              <div className="fixed inset-x-3 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 w-[calc(100vw-1.5rem)] sm:w-96 max-w-md sm:max-w-none mx-auto sm:mx-0 bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 py-3 z-50 overflow-hidden transition-all">
                 <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-black text-slate-800 dark:text-white">Notifications</h3>
@@ -154,6 +174,12 @@ export default function Navbar({ onCartToggle }) {
                         <FaTrashAlt /> Clear
                       </button>
                     )}
+                    <button
+                      onClick={() => setShowNotifDropdown(false)}
+                      className="sm:hidden text-slate-400 hover:text-slate-600 p-1 rounded-full"
+                    >
+                      <FaTimes />
+                    </button>
                   </div>
                 </div>
 
@@ -211,7 +237,7 @@ export default function Navbar({ onCartToggle }) {
 
           {/* Profile Dropdown */}
           {isAuthenticated ? (
-            <div className="relative">
+            <div className="relative" ref={profileRef}>
               <button
                 onClick={() => {
                   setShowDropdown(!showDropdown);
