@@ -39,7 +39,7 @@ public class SecurityConfig {
     @Autowired
     private OAuth2SuccessHandler oAuth2SuccessHandler;
 
-    @Value("${app.frontend.url:https://online-food-order-processing-system-inky.vercel.app}")
+    @Value("${app.frontend.url:https://frontend-production-26f5.up.railway.app}")
     private String frontendUrl;
 
     @Bean
