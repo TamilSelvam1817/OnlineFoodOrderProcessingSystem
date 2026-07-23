@@ -147,78 +147,88 @@ export default function Navbar({ onCartToggle }) {
             </button>
 
             {showNotifDropdown && (
-              <div className="fixed inset-x-3 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 w-[calc(100vw-1.5rem)] sm:w-96 max-w-md sm:max-w-none mx-auto sm:mx-0 bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 py-3 z-50 overflow-hidden transition-all">
-                <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-black text-slate-800 dark:text-white">Notifications</h3>
-                    {unreadCount > 0 && (
-                      <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        {unreadCount} new
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={() => dispatch(markAllAsRead())}
-                        className="text-primary hover:underline font-bold text-[11px] flex items-center gap-1"
-                      >
-                        <FaCheckDouble /> Read All
-                      </button>
-                    )}
-                    {notifications.length > 0 && (
-                      <button
-                        onClick={() => dispatch(clearAllNotifications())}
-                        className="text-slate-400 hover:text-red-500 font-medium text-[11px] flex items-center gap-1"
-                      >
-                        <FaTrashAlt /> Clear
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setShowNotifDropdown(false)}
-                      className="sm:hidden text-slate-400 hover:text-slate-600 p-1 rounded-full"
-                    >
-                      <FaTimes />
-                    </button>
-                  </div>
-                </div>
+              <>
+                {/* Mobile Backdrop Overlay */}
+                <div 
+                  className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 sm:hidden"
+                  onClick={() => setShowNotifDropdown(false)}
+                />
 
-                <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/60">
-                  {notifications.length === 0 ? (
-                    <div className="p-8 text-center">
-                      <div className="text-3xl mb-2">🔔</div>
-                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No notifications yet</p>
-                      <p className="text-[11px] text-slate-400 mt-1">We'll alert you when orders or updates occur</p>
+                {/* Responsive Notification Modal Panel */}
+                <div className="fixed top-16 left-3 right-3 max-w-md mx-auto sm:absolute sm:top-full sm:right-0 sm:left-auto sm:mt-2 sm:w-96 sm:max-w-none sm:mx-0 bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 py-3 z-50 overflow-hidden transition-all">
+                  <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-black text-slate-800 dark:text-white">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          {unreadCount} new
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    notifications.map((n) => (
-                      <div
-                        key={n.id}
-                        onClick={() => handleNotifClick(n)}
-                        className={`p-3.5 flex items-start gap-3 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-700/50 ${
-                          !n.read ? 'bg-primary/5 dark:bg-primary/10' : ''
-                        }`}
+                    <div className="flex items-center gap-2 text-xs">
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={() => dispatch(markAllAsRead())}
+                          className="text-primary hover:underline font-bold text-[11px] flex items-center gap-1"
+                        >
+                          <FaCheckDouble /> Read All
+                        </button>
+                      )}
+                      {notifications.length > 0 && (
+                        <button
+                          onClick={() => dispatch(clearAllNotifications())}
+                          className="text-slate-400 hover:text-red-500 font-medium text-[11px] flex items-center gap-1"
+                        >
+                          <FaTrashAlt /> Clear
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setShowNotifDropdown(false)}
+                        className="sm:hidden text-slate-400 hover:text-slate-600 p-1 rounded-full text-sm"
+                        title="Close"
                       >
-                        {getNotifIcon(n.type)}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className={`text-xs font-bold truncate ${!n.read ? 'text-slate-900 dark:text-white font-black' : 'text-slate-700 dark:text-slate-300'}`}>
-                              {n.title}
-                            </p>
-                            <span className="text-[10px] text-slate-400 flex-shrink-0">{formatTimeAgo(n.time)}</span>
-                          </div>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
-                            {n.message}
-                          </p>
-                        </div>
-                        {!n.read && (
-                          <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
-                        )}
+                        <FaTimes />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/60">
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <div className="text-3xl mb-2">🔔</div>
+                        <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No notifications yet</p>
+                        <p className="text-[11px] text-slate-400 mt-1">We'll alert you when orders or updates occur</p>
                       </div>
-                    ))
-                  )}
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => handleNotifClick(n)}
+                          className={`p-3.5 flex items-start gap-3 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-700/50 ${
+                            !n.read ? 'bg-primary/5 dark:bg-primary/10' : ''
+                          }`}
+                        >
+                          {getNotifIcon(n.type)}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className={`text-xs font-bold truncate ${!n.read ? 'text-slate-900 dark:text-white font-black' : 'text-slate-700 dark:text-slate-300'}`}>
+                                {n.title}
+                              </p>
+                              <span className="text-[10px] text-slate-400 flex-shrink-0">{formatTimeAgo(n.time)}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                              {n.message}
+                            </p>
+                          </div>
+                          {!n.read && (
+                            <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
 
