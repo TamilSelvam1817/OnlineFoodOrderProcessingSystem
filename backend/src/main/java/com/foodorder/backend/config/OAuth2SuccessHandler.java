@@ -40,7 +40,6 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException, ServletException {
-        System.out.println("===== SUCCESS HANDLER STARTED =====");
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         log.info("[OAuth2SuccessHandler] Called! Principal attributes: {}", oAuth2User.getAttributes());
 
